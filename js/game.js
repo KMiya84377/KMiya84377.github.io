@@ -2121,11 +2121,23 @@ class Game {
      * ゲームのリスタート
      */
     restartGame() {
-        // ゲームの状態をリセット
+        // ゲームの全ての状態をリセット
         this.isGameOver = false;
         this.isVictory = false;
+        this.isPaused = false;
         
-        // ゲームを開始
+        // 敵をクリア
+        this.enemies.forEach(enemy => {
+            if (enemy.model) {
+                this.scene.remove(enemy.model);
+            }
+        });
+        this.enemies = [];
+        
+        // 環境オブジェクトをリセット（必要に応じて）
+        // 次のステージ開始時に環境が再構築されるため、ここでは最小限のクリーンアップのみ実行
+        
+        // プレイヤーとステージのデータは startGame() で再初期化されるので呼び出すだけ
         this.startGame();
     }
     

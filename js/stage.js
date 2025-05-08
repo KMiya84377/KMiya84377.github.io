@@ -26,6 +26,11 @@ class Stage {
     start() {
         this.isActive = true;
         this.setupEnvironment();
+        
+        // プレイヤーを安全な位置に配置
+        this.placePlayerSafely();
+        
+        // 敵を生成
         this.spawnEnemies();
         
         // ボス戦用のBGM
@@ -37,6 +42,102 @@ class Stage {
         
         // ステージ情報表示
         document.getElementById('stage').textContent = this.id;
+    }
+    
+    /**
+     * プレイヤーを安全な位置に配置
+     */
+    placePlayerSafely() {
+        if (!this.game.player) return;
+        
+        // ステージ開始時のプレイヤー初期位置
+        // 実装例: ステージの中央付近の床の上に配置
+        const safePosition = this.findSafePlayerPosition();
+        
+        // プレイヤーの位置を設定
+        this.game.player.position.x = safePosition.x;
+        this.game.player.position.y = safePosition.y;
+        this.game.player.position.z = safePosition.z;
+        
+        // プレイヤーの向きをリセット
+        this.game.player.rotation.y = 0;
+        
+        console.log(`プレイヤーを安全な位置に配置: (${safePosition.x}, ${safePosition.y}, ${safePosition.z})`);
+    }
+    
+    /**
+     * 安全なプレイヤーの初期位置を探す
+     */
+    findSafePlayerPosition() {
+        // 候補となる位置
+        const candidatePositions = [
+            { x: 0, y: 0, z: 0 },      // 原点
+            { x: 5, y: 0, z: 5 },      // 右前方
+            { x: -5, y: 0, z: 5 },     // 左前方
+            { x: 5, y: 0, z: -5 },     // 右後方
+            { x: -5, y: 0, z: -5 },    // 左後方
+            { x: 10, y: 0, z: 0 },     // 右
+            { x: -10, y: 0, z: 0 },    // 左
+            { x: 0, y: 0, z: 10 },     // 前
+            { x: 0, y: 0, z: -10 }     // 後
+        ];
+        
+        // 環境オブジェクトのリスト
+        const obstacles = this.game.gameObjects.environment.filter(obj => 
+            obj.name === "obstacle" || obj.name === "furniture" || obj.name === "wall");
+        
+        // 各候補位置について障害物との衝突をチェックし、衝突しない位置を見つける
+        for (const position of candidatePositions) {
+            let isColliding = false;
+            
+            for (const obstacle of obstacles) {
+                if (!obstacle.geometry) continue;
+                
+                // 障害物のバウンディングボックスを取得
+                let box;
+                if (!obstacle.geometry.boundingBox) {
+                    obstacle.geometry.computeBoundingBox();
+                }
+                box = obstacle.geometry.boundingBox.clone();
+                
+                // ワールド座標系に変換
+                box.applyMatrix4(obstacle.matrixWorld);
+                
+                // プレイヤーの位置と障害物との距離を計算
+                const obstaclePos = new THREE.Vector3();
+                obstacle.getWorldPosition(obstaclePos);
+                
+                // プレイヤーの半径（衝突判定用）
+                const playerRadius = 1.0;
+                
+                // 障害物のサイズを考慮した安全距離
+                const boxSize = new THREE.Vector3();
+                box.getSize(boxSize);
+                const obstacleRadius = Math.max(boxSize.x, boxSize.z) / 2;
+                
+                // 距離の2乗（平方根計算を避けるため）
+                const dx = obstaclePos.x - position.x;
+                const dz = obstaclePos.z - position.z;
+                const distanceSquared = dx * dx + dz * dz;
+                
+                // 安全距離の2乗
+                const minDistanceSquared = Math.pow(playerRadius + obstacleRadius + 1.0, 2);
+                
+                // 衝突判定
+                if (distanceSquared < minDistanceSquared) {
+                    isColliding = true;
+                    break;
+                }
+            }
+            
+            // 衝突していない位置を見つけた場合
+            if (!isColliding) {
+                return position;
+            }
+        }
+        
+        // どの位置も安全でない場合は、原点から十分に上に配置
+        return { x: 0, y: 5, z: 0 };
     }
     
     /**
