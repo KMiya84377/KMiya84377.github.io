@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景色 -->
+  <rect width="256" height="256" fill="#444444" />
+  
+  <!-- 布の縦糸 -->
+  <pattern id="verticalPattern" width="4" height="4" patternUnits="userSpaceOnUse">
+    <rect width="2" height="4" fill="#3a3a3a" />
+  </pattern>
+  <rect width="256" height="256" fill="url(#verticalPattern)" />
+  
+  <!-- 布の横糸 -->
+  <pattern id="horizontalPattern" width="4" height="4" patternUnits="userSpaceOnUse">
+    <rect width="4" height="2" fill="#3a3a3a" />
+  </pattern>
+  <rect width="256" height="256" fill="url(#horizontalPattern)" opacity="0.7" />
+  
+  <!-- 布の質感 -->
+  <filter id="noise" x="0%" y="0%" width="100%" height="100%">
+    <feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="3" stitchTiles="stitch" />
+    <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.1 0" />
+  </filter>
+  <rect width="256" height="256" filter="url(#noise)" opacity="0.2" />
+</svg>

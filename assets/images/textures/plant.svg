@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景色 -->
+  <rect width="256" height="256" fill="#228B22" />
+  
+  <!-- 葉脈パターン -->
+  <g stroke="#116611" stroke-width="1" fill="none">
+    <!-- 主脈 -->
+    <path d="M128,10 C128,128 128,246 128,246" />
+    <path d="M64,30 C96,138 128,246 128,246" />
+    <path d="M192,30 C160,138 128,246 128,246" />
+    
+    <!-- 二次脈 -->
+    <path d="M64,30 C96,40 128,35 128,10" />
+    <path d="M192,30 C160,40 128,35 128,10" />
+    
+    <path d="M80,70 C103,75 127,70 128,50" />
+    <path d="M176,70 C153,75 129,70 128,50" />
+    
+    <path d="M96,110 C110,115 127,105 128,90" />
+    <path d="M160,110 C146,115 129,105 128,90" />
+    
+    <path d="M112,150 C120,155 127,145 128,130" />
+    <path d="M144,150 C136,155 129,145 128,130" />
+    
+    <path d="M124,190 C126,195 127,185 128,170" />
+    <path d="M132,190 C130,195 129,185 128,170" />
+  </g>
+  
+  <!-- 葉の表面のハイライト -->
+  <g fill="#33AA33" opacity="0.3">
+    <ellipse cx="90" cy="50" rx="20" ry="10" />
+    <ellipse cx="166" cy="50" rx="20" ry="10" />
+    <ellipse cx="110" cy="100" rx="15" ry="8" />
+    <ellipse cx="146" cy="100" rx="15" ry="8" />
+    <ellipse cx="120" cy="150" rx="10" ry="6" />
+    <ellipse cx="136" cy="150" rx="10" ry="6" />
+  </g>
+  
+  <!-- 葉の表面の陰影 -->
+  <g fill="#116611" opacity="0.2">
+    <ellipse cx="60" cy="40" rx="15" ry="8" />
+    <ellipse cx="196" cy="40" rx="15" ry="8" />
+    <ellipse cx="85" cy="90" rx="12" ry="6" />
+    <ellipse cx="171" cy="90" rx="12" ry="6" />
+    <ellipse cx="105" cy="140" rx="8" ry="4" />
+    <ellipse cx="151" cy="140" rx="8" ry="4" />
+    <ellipse cx="118" cy="190" rx="5" ry="3" />
+    <ellipse cx="138" cy="190" rx="5" ry="3" />
+  </g>
+</svg>

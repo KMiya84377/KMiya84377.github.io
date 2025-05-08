@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景色 -->
+  <rect width="256" height="256" fill="#8B4513" />
+  
+  <!-- 木目パターン -->
+  <g stroke="#6B3000" stroke-width="1" fill="none">
+    <!-- 水平の木目 -->
+    <path d="M0,20 C64,18 128,22 256,20" />
+    <path d="M0,40 C64,42 128,38 256,40" />
+    <path d="M0,60 C64,58 128,62 256,60" />
+    <path d="M0,80 C64,82 128,78 256,80" />
+    <path d="M0,100 C64,98 128,102 256,100" />
+    <path d="M0,120 C64,122 128,118 256,120" />
+    <path d="M0,140 C64,138 128,142 256,140" />
+    <path d="M0,160 C64,162 128,158 256,160" />
+    <path d="M0,180 C64,178 128,182 256,180" />
+    <path d="M0,200 C64,202 128,198 256,200" />
+    <path d="M0,220 C64,218 128,222 256,220" />
+    <path d="M0,240 C64,242 128,238 256,240" />
+    
+    <!-- 節 -->
+    <ellipse cx="50" cy="50" rx="15" ry="10" />
+    <ellipse cx="200" cy="120" rx="20" ry="15" />
+    <ellipse cx="80" cy="200" rx="12" ry="8" />
+  </g>
+  
+  <!-- 色の深みを追加 -->
+  <rect x="20" y="30" width="40" height="15" fill="#7B3503" opacity="0.3" />
+  <rect x="100" y="90" width="70" height="20" fill="#7B3503" opacity="0.3" />
+  <rect x="180" y="170" width="50" height="30" fill="#7B3503" opacity="0.3" />
+</svg>
