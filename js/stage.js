@@ -56,18 +56,25 @@ class Stage {
         this.setupSpawnPoints();
         
         // 敵の生成
-        this.spawnEnemyGroup('boss', this.enemyConfig.boss);
-        this.spawnEnemyGroup('customer', this.enemyConfig.customer);
-        this.spawnEnemyGroup('sales', this.enemyConfig.sales);
+        if (this.enemyConfig.boss > 0) {
+            this.spawnEnemyGroup('boss', this.enemyConfig.boss);
+        }
+        
+        if (this.enemyConfig.customer > 0) {
+            this.spawnEnemyGroup('customer', this.enemyConfig.customer);
+        }
+        
+        if (this.enemyConfig.sales > 0) {
+            this.spawnEnemyGroup('sales', this.enemyConfig.sales);
+        }
         
         // ボス敵が設定されていれば生成
-        if (this.enemyConfig.finalBoss) {
+        if (this.enemyConfig.finalBoss && this.enemyConfig.finalBoss.count > 0) {
             const bossType = this.enemyConfig.finalBoss.type;
             const bossCount = this.enemyConfig.finalBoss.count;
             
             for (let i = 0; i < bossCount; i++) {
                 const position = this.getRandomSpawnPoint();
-                // 静的メソッドの正しい呼び出し方法に変更
                 const boss = EnemyFactory.createEnemy(this.game, bossType, position);
                 
                 if (boss) {
@@ -75,6 +82,18 @@ class Stage {
                     this.game.addEnemy(boss);
                 }
             }
+        }
+        
+        // デバッグログ
+        console.log(`ステージ ${this.id} に敵を生成: ${this.enemies.length}体`);
+        
+        // もし敵が一体も生成されなかった場合は、デフォルトで敵を生成
+        if (this.enemies.length === 0) {
+            console.warn(`ステージ ${this.id} に敵が生成されませんでした。デフォルト敵を生成します。`);
+            const position = { x: 0, y: 0, z: -15 };
+            const enemy = EnemyFactory.createEnemy(this.game, 'default', position);
+            this.enemies.push(enemy);
+            this.game.addEnemy(enemy);
         }
     }
     

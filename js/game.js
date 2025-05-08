@@ -509,6 +509,7 @@ class Game {
             
             // プレイヤーの位置にカメラを追従
             if (this.camera) {
+                // カメラの位置をプレイヤーの目線位置に設定
                 this.camera.position.set(
                     this.player.position.x,
                     this.player.position.y + 2, // 目線の高さ
@@ -522,13 +523,11 @@ class Game {
                     Math.cos(this.player.rotation.y) * Math.cos(this.player.rotation.x)
                 );
                 
-                const lookAtPosition = new THREE.Vector3(
+                this.camera.lookAt(
                     this.camera.position.x + lookDirection.x,
                     this.camera.position.y + lookDirection.y,
                     this.camera.position.z + lookDirection.z
                 );
-                
-                this.camera.lookAt(lookAtPosition);
             }
         }
         
@@ -634,43 +633,68 @@ class Game {
     }
     
     /**
-     * レイキャスト（弾道計算）
+     * レイキャストによる衝突判定（主に射撃用）
      */
-    raycast(origin, direction, maxDistance) {
-        // 計算用のベクトル
-        const rayOrigin = new THREE.Vector3(origin.x, origin.y + 2, origin.z); // 目線の高さ
+    raycast(position, rotation, maxDistance) {
+        // レイの開始位置
+        const rayOrigin = new THREE.Vector3(position.x, position.y + 2, position.z); // プレイヤーの目線位置
         
-        // 視線方向のベクトルを作成
+        // レイの方向ベクトル
         const rayDirection = new THREE.Vector3(
-            Math.sin(direction.y) * Math.cos(direction.x),
-            Math.sin(direction.x),
-            Math.cos(direction.y) * Math.cos(direction.x)
+            Math.sin(rotation.y) * Math.cos(rotation.x),
+            Math.sin(rotation.x),
+            Math.cos(rotation.y) * Math.cos(rotation.x)
         ).normalize();
         
-        // レイキャスターを設定
-        this.raycaster.set(rayOrigin, rayDirection);
+        // レイキャスト用のRaycasterオブジェクト
+        const raycaster = new THREE.Raycaster(rayOrigin, rayDirection, 0, maxDistance);
         
-        // 敵のモデルのリストを作成
-        const enemyModels = this.enemies
-            .filter(enemy => !enemy.isDead && enemy.model)
+        // 敵のモデルを含む配列
+        const targets = this.enemies
+            .filter(enemy => enemy.model && !enemy.isDead)
             .map(enemy => enemy.model);
         
-        // 交差判定
-        const intersects = this.raycaster.intersectObjects(enemyModels);
-        
-        if (intersects.length > 0 && intersects[0].distance <= maxDistance) {
-            // 最も近い交差オブジェクトを取得
-            const intersection = intersects[0];
-            
-            // 交差したモデルが属する敵を特定
-            const hitEnemy = this.enemies.find(enemy => enemy.model === intersection.object);
-            
-            if (hitEnemy) {
-                return { enemy: hitEnemy, distance: intersection.distance };
+        // モデルがあっても表示されていない敵がいれば警告
+        for (const enemy of this.enemies) {
+            if (!enemy.isDead && !enemy.model) {
+                console.warn(`敵 ${enemy.id} のモデルが見つかりません`);
             }
         }
         
-        // 何にも当たらなかった
+        // レイキャストの実行
+        const intersects = raycaster.intersectObjects(targets, true);
+        
+        // デバッグログ
+        console.log(`Raycast: ${targets.length}体の敵をチェック, ${intersects.length}件のヒット`);
+        
+        // 衝突があれば最も近い敵を返す
+        if (intersects.length > 0) {
+            // 最初の交点に対応する敵オブジェクトを見つける
+            for (const enemy of this.enemies) {
+                if (enemy.model) {
+                    // intersectObject がモデルの子孫かどうかをチェック
+                    let meshFound = false;
+                    const checkObject = (obj) => {
+                        if (obj === intersects[0].object) {
+                            return true;
+                        }
+                        if (obj.children) {
+                            for (const child of obj.children) {
+                                if (checkObject(child)) {
+                                    return true;
+                                }
+                            }
+                        }
+                        return false;
+                    };
+                    
+                    if (checkObject(enemy.model)) {
+                        return { enemy: enemy, point: intersects[0].point };
+                    }
+                }
+            }
+        }
+        
         return null;
     }
     

@@ -113,35 +113,23 @@ class Player {
                     break;
                 case ' ':
                     this.keys.jump = true;
-                    this.useSpecialAbility();
+                    // 特殊能力の発動とジャンプを分離
                     break;
                 case 'r':
                     this.reload();
                     break;
+                case 'q': // Qキーでも特殊能力が発動できるようにする
+                case 'e': // Eキーでも特殊能力が発動できるようにする
+                case 'shift': // シフトキーでも特殊能力が発動できるようにする
+                    this.useSpecialAbility();
+                    break;
             }
         });
         
-        document.addEventListener('keyup', (event) => {
-            switch (event.key.toLowerCase()) {
-                case 'w':
-                case 'arrowup':
-                    this.keys.forward = false;
-                    break;
-                case 's':
-                case 'arrowdown':
-                    this.keys.backward = false;
-                    break;
-                case 'a':
-                case 'arrowleft':
-                    this.keys.left = false;
-                    break;
-                case 'd':
-                case 'arrowright':
-                    this.keys.right = false;
-                    break;
-                case ' ':
-                    this.keys.jump = false;
-                    break;
+        // スペースキーでの特殊能力発動を別のイベントハンドラで監視
+        document.addEventListener('keypress', (event) => {
+            if (event.key === ' ' && this.game.isActive) {
+                this.useSpecialAbility();
             }
         });
         
@@ -205,6 +193,9 @@ class Player {
         // 移動量を適用
         this.position.x += moveVector.x;
         this.position.z += moveVector.z;
+        
+        // カメラの位置更新を追加
+        this.game.camera.position.set(this.position.x, this.position.y + 2, this.position.z);
         
         // 壁との衝突判定（簡易版）
         this.checkCollision();
@@ -277,10 +268,14 @@ class Player {
             const damage = this.specialAbilityActive ? 
                 GameConfig.player.damage * 2 : GameConfig.player.damage;
             
-            hit.enemy.takeDamage(damage);
+            hit.enemy.takeDamage(damage, this);
             
             // ヒット効果音
             this.game.playSound('hit');
+            
+            console.log(`敵に命中! ダメージ: ${damage}`);
+        } else {
+            console.log('射撃: 外れ');
         }
         
         // 射撃後のディレイを設定

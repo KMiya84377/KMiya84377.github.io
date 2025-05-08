@@ -54,6 +54,15 @@ class Enemy {
     }
     
     /**
+     * プレイヤーをターゲットに設定
+     * @param {Player} player - プレイヤーオブジェクト
+     */
+    setTarget(player) {
+        this.targetPlayer = player;
+        this.aiState = 'chase';  // プレイヤーを追いかける状態に設定
+    }
+    
+    /**
      * 敵の更新
      */
     update() {
@@ -75,6 +84,8 @@ class Enemy {
                 this.position.z
             );
             this.model.rotation.y = this.rotation.y;
+        } else {
+            console.warn(`敵のモデルが設定されていません: ${this.id}`);
         }
         
         // 攻撃処理
