@@ -13,6 +13,7 @@ class StoryManager {
         this.currentDialog = null;
         this.dialogQueue = [];
         this.isDialogActive = false;
+        this.isStageCleared = false; // ステージクリア状態を管理するフラグ
         
         this.characters = {
             player: {
@@ -192,6 +193,9 @@ class StoryManager {
             // ゲームを一時停止
             this.game.pauseGame();
             
+            // ステージクリアフラグを設定
+            this.isStageCleared = true;
+            
             // ダイアログキューにイベントを追加
             this.dialogQueue = [...events];
             
@@ -209,6 +213,15 @@ class StoryManager {
             this.hideDialog();
             // ゲームを再開
             this.game.resumeGame();
+            
+            // ステージクリア後の場合、次のステージに進むための処理を追加
+            if (this.isStageCleared) {
+                this.isStageCleared = false;
+                // 少し待ってから次のステージへ
+                setTimeout(() => {
+                    this.game.stageManager.nextStage();
+                }, 500);
+            }
             return;
         }
         

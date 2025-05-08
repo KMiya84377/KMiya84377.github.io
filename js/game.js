@@ -95,9 +95,24 @@ class Game {
                 if (loadedAssets >= totalAssets) {
                     clearInterval(loadInterval);
                     
-                    // ロード完了、スタートボタンを表示
+                    // ロード完了、スペースキー押下で開始のメッセージを表示
+                    startButton.textContent = "スペースキーを押してゲームを開始";
                     startButton.style.display = 'block';
+                    
+                    // スペースキーのイベントリスナーを追加
+                    const handleKeydown = (event) => {
+                        if (event.code === 'Space') {
+                            document.removeEventListener('keydown', handleKeydown);
+                            this.showStartScreen();
+                            resolve();
+                        }
+                    };
+                    
+                    document.addEventListener('keydown', handleKeydown);
+                    
+                    // クリックでも可能にしておく（アクセシビリティ向上）
                     startButton.addEventListener('click', () => {
+                        document.removeEventListener('keydown', handleKeydown);
                         this.showStartScreen();
                         resolve();
                     });

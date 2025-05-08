@@ -43,9 +43,16 @@ class Stage {
      * 環境の設定（背景や地形など）
      */
     setupEnvironment() {
-        // 環境に応じた背景やオブジェクトを設定
-        // 実装はゲームエンジンに依存
+        // environment プロパティに基づいて適切な環境をセットアップ
         console.log(`Setting up environment: ${this.environment}`);
+        
+        // 遮蔽物を含む環境を正しくセットアップ
+        if (this.environment) {
+            this.game.setupEnvironment(this.environment);
+        } else {
+            // 環境が指定されていない場合はデフォルト環境を使用
+            this.game.setupEnvironment("office");
+        }
     }
     
     /**
@@ -257,17 +264,19 @@ class StageManager {
         const transitionScreen = document.getElementById('stage-transition');
         transitionScreen.classList.add('active');
         
-        // クリックでゲーム画面へ
-        const handleClick = () => {
-            transitionScreen.classList.remove('active');
-            document.getElementById('game-screen').classList.add('active');
-            this.startCurrentStage();
-            
-            // イベントリスナーを削除
-            transitionScreen.removeEventListener('click', handleClick);
+        // スペースキーでゲーム画面へ
+        const handleKeydown = (event) => {
+            if (event.code === 'Space') {
+                transitionScreen.classList.remove('active');
+                document.getElementById('game-screen').classList.add('active');
+                this.startCurrentStage();
+                
+                // イベントリスナーを削除
+                document.removeEventListener('keydown', handleKeydown);
+            }
         };
         
-        transitionScreen.addEventListener('click', handleClick);
+        document.addEventListener('keydown', handleKeydown);
     }
     
     /**
