@@ -25,13 +25,19 @@ class Stage {
      */
     start() {
         this.isActive = true;
+        
+        // まず環境をセットアップ
         this.setupEnvironment();
         
-        // プレイヤーを安全な位置に配置
-        this.placePlayerSafely();
-        
-        // 敵を生成
-        this.spawnEnemies();
+        // 環境のセットアップが完了したことを確認するため、次のフレームで
+        // プレイヤーを安全な位置に配置（非同期処理）
+        setTimeout(() => {
+            // プレイヤーを安全な位置に配置
+            this.placePlayerSafely();
+            
+            // 敵を生成（プレイヤーの配置後）
+            this.spawnEnemies();
+        }, 100);
         
         // ボス戦用のBGM
         if (this.isBossBattle) {
@@ -69,17 +75,25 @@ class Stage {
      * 安全なプレイヤーの初期位置を探す
      */
     findSafePlayerPosition() {
-        // 候補となる位置
+        // 候補となる位置（より多くの候補と距離を増やして安全性を高める）
         const candidatePositions = [
-            { x: 0, y: 0, z: 0 },      // 原点
-            { x: 5, y: 0, z: 5 },      // 右前方
-            { x: -5, y: 0, z: 5 },     // 左前方
-            { x: 5, y: 0, z: -5 },     // 右後方
-            { x: -5, y: 0, z: -5 },    // 左後方
-            { x: 10, y: 0, z: 0 },     // 右
-            { x: -10, y: 0, z: 0 },    // 左
-            { x: 0, y: 0, z: 10 },     // 前
-            { x: 0, y: 0, z: -10 }     // 後
+            { x: 0, y: 1, z: 0 },      // 原点（少し浮かせる）
+            { x: 3, y: 1, z: 3 },      // 右前方（近距離）
+            { x: -3, y: 1, z: 3 },     // 左前方（近距離）
+            { x: 3, y: 1, z: -3 },     // 右後方（近距離）
+            { x: -3, y: 1, z: -3 },    // 左後方（近距離）
+            { x: 6, y: 1, z: 6 },      // 右前方（中距離）
+            { x: -6, y: 1, z: 6 },     // 左前方（中距離）
+            { x: 6, y: 1, z: -6 },     // 右後方（中距離）
+            { x: -6, y: 1, z: -6 },    // 左後方（中距離）
+            { x: 10, y: 1, z: 0 },     // 右（遠距離）
+            { x: -10, y: 1, z: 0 },    // 左（遠距離）
+            { x: 0, y: 1, z: 10 },     // 前（遠距離）
+            { x: 0, y: 1, z: -10 },    // 後（遠距離）
+            { x: 15, y: 1, z: 15 },    // 右前方（遠距離）
+            { x: -15, y: 1, z: 15 },   // 左前方（遠距離）
+            { x: 15, y: 1, z: -15 },   // 右後方（遠距離）
+            { x: -15, y: 1, z: -15 },  // 左後方（遠距離）
         ];
         
         // 環境オブジェクトのリスト
@@ -96,19 +110,34 @@ class Stage {
                 // 障害物のバウンディングボックスを取得
                 let box;
                 if (!obstacle.geometry.boundingBox) {
-                    obstacle.geometry.computeBoundingBox();
+                    try {
+                        obstacle.geometry.computeBoundingBox();
+                    } catch (e) {
+                        console.warn("バウンディングボックスの計算に失敗:", e);
+                        continue; // このオブジェクトはスキップ
+                    }
                 }
                 box = obstacle.geometry.boundingBox.clone();
                 
                 // ワールド座標系に変換
-                box.applyMatrix4(obstacle.matrixWorld);
+                try {
+                    box.applyMatrix4(obstacle.matrixWorld);
+                } catch (e) {
+                    console.warn("マトリックス変換に失敗:", e);
+                    continue; // このオブジェクトはスキップ
+                }
                 
                 // プレイヤーの位置と障害物との距離を計算
                 const obstaclePos = new THREE.Vector3();
-                obstacle.getWorldPosition(obstaclePos);
+                try {
+                    obstacle.getWorldPosition(obstaclePos);
+                } catch (e) {
+                    console.warn("ワールド位置の取得に失敗:", e);
+                    continue; // このオブジェクトはスキップ
+                }
                 
                 // プレイヤーの半径（衝突判定用）
-                const playerRadius = 1.0;
+                const playerRadius = 1.5; // 余裕を持たせる
                 
                 // 障害物のサイズを考慮した安全距離
                 const boxSize = new THREE.Vector3();
@@ -120,8 +149,8 @@ class Stage {
                 const dz = obstaclePos.z - position.z;
                 const distanceSquared = dx * dx + dz * dz;
                 
-                // 安全距離の2乗
-                const minDistanceSquared = Math.pow(playerRadius + obstacleRadius + 1.0, 2);
+                // 安全距離の2乗（余裕を持たせる）
+                const minDistanceSquared = Math.pow(playerRadius + obstacleRadius + 2.0, 2);
                 
                 // 衝突判定
                 if (distanceSquared < minDistanceSquared) {
@@ -136,8 +165,9 @@ class Stage {
             }
         }
         
-        // どの位置も安全でない場合は、原点から十分に上に配置
-        return { x: 0, y: 5, z: 0 };
+        // どの位置も安全でない場合は、高い位置に配置（重力で落下）
+        console.warn("安全な初期位置が見つかりませんでした。空中に配置します。");
+        return { x: 0, y: 10, z: 0 };
     }
     
     /**
