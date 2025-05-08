@@ -207,25 +207,25 @@ class Player {
         
         let moveVector = { x: 0, y: 0, z: 0 };
         
-        // 現在向いている方向を基準に前後左右の移動を計算（修正版）
+        // 現在向いている方向を基準に前後左右の移動を計算（修正済み）
         if (this.keys.forward) {  // Wキー: 前進
-            moveVector.z -= Math.cos(this.rotation.y) * moveSpeed * speedMultiplier;
-            moveVector.x -= Math.sin(this.rotation.y) * moveSpeed * speedMultiplier;
+            moveVector.x += Math.sin(this.rotation.y) * moveSpeed * speedMultiplier;
+            moveVector.z += Math.cos(this.rotation.y) * moveSpeed * speedMultiplier;
         }
         
         if (this.keys.backward) { // Sキー: 後退
-            moveVector.z += Math.cos(this.rotation.y) * moveSpeed * speedMultiplier;
-            moveVector.x += Math.sin(this.rotation.y) * moveSpeed * speedMultiplier;
+            moveVector.x -= Math.sin(this.rotation.y) * moveSpeed * speedMultiplier;
+            moveVector.z -= Math.cos(this.rotation.y) * moveSpeed * speedMultiplier;
         }
         
         if (this.keys.left) {     // Aキー: 左へ移動
-            moveVector.z -= Math.sin(this.rotation.y) * moveSpeed * speedMultiplier;
-            moveVector.x += Math.cos(this.rotation.y) * moveSpeed * speedMultiplier;
+            moveVector.x -= Math.cos(this.rotation.y) * moveSpeed * speedMultiplier;
+            moveVector.z += Math.sin(this.rotation.y) * moveSpeed * speedMultiplier;
         }
         
         if (this.keys.right) {    // Dキー: 右へ移動
-            moveVector.z += Math.sin(this.rotation.y) * moveSpeed * speedMultiplier;
-            moveVector.x -= Math.cos(this.rotation.y) * moveSpeed * speedMultiplier;
+            moveVector.x += Math.cos(this.rotation.y) * moveSpeed * speedMultiplier;
+            moveVector.z -= Math.sin(this.rotation.y) * moveSpeed * speedMultiplier;
         }
         
         // 移動量を適用
@@ -265,11 +265,8 @@ class Player {
      * 壁や障害物との衝突判定
      */
     checkCollision() {
-        // 簡易的な衝突判定
-        // 実際のゲームでは、Three.jsのRaycasterや物理エンジンを使ってより精密な判定を行う
-        
-        // プレイヤーのバウンディングボックス
-        const playerSize = 1.0; // プレイヤーの横幅
+        // プレイヤーの円柱状のバウンディングボックス
+        const playerRadius = 0.5; // プレイヤーの横幅（半径）
         
         // 部屋の境界チェック
         const roomSize = 24; // 部屋の半分のサイズ（余裕を持たせる）
@@ -281,6 +278,64 @@ class Player {
         // Z座標の制限
         if (this.position.z > roomSize) this.position.z = roomSize;
         if (this.position.z < -roomSize) this.position.z = -roomSize;
+        
+        // 環境内の障害物との衝突チェック
+        const obstacles = this.game.gameObjects.environment.filter(obj => obj.name === "obstacle" || obj.name === "furniture" || obj.name === "wall");
+        
+        // 前のフレームの位置を記憶（衝突時に戻すため）
+        const previousPosition = { x: this.position.x, y: this.position.y, z: this.position.z };
+        
+        for (const obstacle of obstacles) {
+            if (!obstacle.geometry) continue; // ジオメトリがない場合はスキップ
+            
+            // 障害物のバウンディングボックスを取得
+            let box;
+            if (!obstacle.geometry.boundingBox) {
+                obstacle.geometry.computeBoundingBox();
+            }
+            box = obstacle.geometry.boundingBox.clone();
+            
+            // ワールド座標系に変換
+            box.applyMatrix4(obstacle.matrixWorld);
+            
+            // プレイヤーと障害物の距離を計算
+            const obstaclePos = new THREE.Vector3();
+            obstacle.getWorldPosition(obstaclePos);
+            
+            // プレイヤーから障害物への方向ベクトル
+            const dx = obstaclePos.x - this.position.x;
+            const dz = obstaclePos.z - this.position.z;
+            
+            // 距離の2乗（ルート計算を避けるため）
+            const distanceSquared = dx * dx + dz * dz;
+            
+            // 衝突判定の半径（障害物のサイズに応じて調整）
+            let collisionRadius = playerRadius;
+            
+            // バウンディングボックスから近似する衝突半径
+            const boxSize = new THREE.Vector3();
+            box.getSize(boxSize);
+            const obstacleRadius = Math.max(boxSize.x, boxSize.z) / 2;
+            
+            // 衝突判定
+            const minDistance = collisionRadius + obstacleRadius;
+            if (distanceSquared < minDistance * minDistance) {
+                // 衝突しているので位置を調整
+                // 衝突した方向と逆に少し押し戻す
+                if (distanceSquared > 0) {
+                    const angle = Math.atan2(dx, dz);
+                    const pushDistance = minDistance - Math.sqrt(distanceSquared) + 0.1; // 少し余分に押し戻す
+                    
+                    this.position.x = previousPosition.x - Math.sin(angle) * pushDistance;
+                    this.position.z = previousPosition.z - Math.cos(angle) * pushDistance;
+                } else {
+                    // 完全に重なっている場合はランダムな方向に押し出す
+                    const randomAngle = Math.random() * Math.PI * 2;
+                    this.position.x = obstaclePos.x + Math.sin(randomAngle) * minDistance;
+                    this.position.z = obstaclePos.z + Math.cos(randomAngle) * minDistance;
+                }
+            }
+        }
     }
     
     /**

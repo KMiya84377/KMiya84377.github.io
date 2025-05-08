@@ -2052,6 +2052,31 @@ class Game {
             if (event.key === 'Escape' && this.isActive) {
                 this.togglePause();
             }
+            
+            // ゲームオーバー画面でのキー操作
+            if (this.isGameOver) {
+                if (event.code === 'Space' || event.code === 'Enter' || event.code === 'KeyR') {
+                    this.restartGame(); // リスタート
+                } else if (event.code === 'KeyM') {
+                    this.showStartScreen(); // メインメニューに戻る
+                }
+            }
+            
+            // 勝利画面でのキー操作
+            if (this.isVictory) {
+                if (event.code === 'Space' || event.code === 'Enter' || event.code === 'KeyR') {
+                    this.restartGame(); // もう一度プレイ
+                } else if (event.code === 'KeyM') {
+                    this.showStartScreen(); // メインメニューに戻る
+                }
+            }
+            
+            // スタート画面でのキー操作
+            if (!this.isActive && !this.isGameOver && !this.isVictory && this.screens.start.classList.contains('active')) {
+                if (event.code === 'Space' || event.code === 'Enter') {
+                    this.startGame(); // ゲーム開始
+                }
+            }
         });
     }
     
