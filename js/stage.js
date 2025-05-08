@@ -25,19 +25,22 @@ class Stage {
      */
     start() {
         this.isActive = true;
+        console.log(`ステージ ${this.id} を開始します`);
         
         // まず環境をセットアップ
         this.setupEnvironment();
         
-        // 環境のセットアップが完了したことを確認するため、次のフレームで
-        // プレイヤーを安全な位置に配置（非同期処理）
+        // 環境のセットアップが完了したことを確認してから安全な位置に配置
         setTimeout(() => {
-            // プレイヤーを安全な位置に配置
+            // プレイヤーを安全な固定位置に配置
             this.placePlayerSafely();
             
-            // 敵を生成（プレイヤーの配置後）
-            this.spawnEnemies();
-        }, 100);
+            // その後、安全な位置に敵をスポーン
+            setTimeout(() => {
+                this.spawnEnemies();
+                console.log(`ステージ ${this.id} のセットアップが完了しました`);
+            }, 100);
+        }, 200);
         
         // ボス戦用のBGM
         if (this.isBossBattle) {
@@ -255,32 +258,105 @@ class Stage {
      * スポーン位置の設定
      */
     setupSpawnPoints() {
-        // 実際のゲームでは地形情報からスポーン位置を決定
-        // ここではランダムな位置を設定
-        const areaSize = 50; // 地形の大きさ
-        const minDistance = 10; // プレイヤーから最低限離れるべき距離
-        
-        // 4つのスポーン領域を設定
+        // 固定されたスポーン位置を使用（プレイヤーの位置から十分に離れた場所）
         this.spawnPoints = [
-            { x: -areaSize/2, z: -areaSize/2 }, // 左奥
-            { x: areaSize/2, z: -areaSize/2 },  // 右奥
-            { x: -areaSize/2, z: areaSize/2 },  // 左手前
-            { x: areaSize/2, z: areaSize/2 }    // 右手前
+            { x: -20, y: 0, z: -20 }, // 左奥（遠い）
+            { x: 20, y: 0, z: -20 },  // 右奥（遠い）
+            { x: -20, y: 0, z: 20 },  // 左手前（遠い）
+            { x: 20, y: 0, z: 20 },   // 右手前（遠い）
+            { x: -15, y: 0, z: -5 },  // 左側
+            { x: 15, y: 0, z: -5 },   // 右側
+            { x: 0, y: 0, z: -20 },   // 奥中央
+            { x: 0, y: 0, z: 20 },    // 手前中央
         ];
     }
-    
+
     /**
-     * ランダムなスポーン位置を取得
+     * ランダムなスポーン位置を取得（障害物との衝突チェックを追加）
      */
     getRandomSpawnPoint() {
-        const basePoint = this.spawnPoints[Math.floor(Math.random() * this.spawnPoints.length)];
-        // ベース位置から少しランダムにずらす
-        const offset = 10;
-        return {
-            x: basePoint.x + (Math.random() * 2 - 1) * offset,
-            y: 0, // 地面の高さ
-            z: basePoint.z + (Math.random() * 2 - 1) * offset
-        };
+        // 環境オブジェクトのリスト
+        const obstacles = this.game.gameObjects.environment.filter(obj => 
+            obj.name === "obstacle" || obj.name === "furniture" || obj.name === "wall");
+        
+        // 安全なスポーン位置を探す
+        for (const spawnPoint of this.shuffleArray([...this.spawnPoints])) {
+            let isColliding = false;
+            
+            for (const obstacle of obstacles) {
+                if (!obstacle.geometry) continue;
+                
+                // 障害物のバウンディングボックスを取得
+                let box;
+                try {
+                    if (!obstacle.geometry.boundingBox) {
+                        obstacle.geometry.computeBoundingBox();
+                    }
+                    box = obstacle.geometry.boundingBox.clone();
+                    box.applyMatrix4(obstacle.matrixWorld);
+                } catch (e) {
+                    console.warn("障害物のバウンディングボックス計算に失敗:", e);
+                    continue;
+                }
+                
+                // 障害物の位置を取得
+                const obstaclePos = new THREE.Vector3();
+                try {
+                    obstacle.getWorldPosition(obstaclePos);
+                } catch (e) {
+                    console.warn("障害物のワールド位置の取得に失敗:", e);
+                    continue;
+                }
+                
+                // 敵の半径と障害物の半径を設定
+                const enemyRadius = 1.0;
+                
+                // 障害物のサイズを考慮した安全距離
+                const boxSize = new THREE.Vector3();
+                box.getSize(boxSize);
+                const obstacleRadius = Math.max(boxSize.x, boxSize.z) / 2;
+                
+                // 距離の2乗を計算
+                const dx = obstaclePos.x - spawnPoint.x;
+                const dz = obstaclePos.z - spawnPoint.z;
+                const distanceSquared = dx * dx + dz * dz;
+                
+                // 安全距離の2乗
+                const minDistanceSquared = Math.pow(enemyRadius + obstacleRadius + 1.5, 2);
+                
+                // 衝突判定
+                if (distanceSquared < minDistanceSquared) {
+                    isColliding = true;
+                    break;
+                }
+            }
+            
+            // 衝突していない位置が見つかった場合
+            if (!isColliding) {
+                // わずかにランダム性を持たせる（±1.0 の範囲でオフセット）
+                const safePosition = {
+                    x: spawnPoint.x + (Math.random() * 2 - 1) * 1.0,
+                    y: 0, // 地面の高さ
+                    z: spawnPoint.z + (Math.random() * 2 - 1) * 1.0
+                };
+                return safePosition;
+            }
+        }
+        
+        // 安全な位置が見つからない場合は、高い位置に配置（落下する）
+        console.warn("敵の安全なスポーン位置が見つかりませんでした。空中に配置します。");
+        return { x: 10, y: 10, z: -10 };
+    }
+
+    /**
+     * 配列をランダムに並べ替える（Fisher-Yates シャッフル）
+     */
+    shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
     }
     
     /**
