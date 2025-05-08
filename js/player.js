@@ -113,7 +113,6 @@ class Player {
                     break;
                 case ' ':
                     this.keys.jump = true;
-                    // 特殊能力の発動とジャンプを分離
                     break;
                 case 'r':
                     this.reload();
@@ -122,6 +121,31 @@ class Player {
                 case 'e': // Eキーでも特殊能力が発動できるようにする
                 case 'shift': // シフトキーでも特殊能力が発動できるようにする
                     this.useSpecialAbility();
+                    break;
+            }
+        });
+        
+        // キーを離した時の処理を追加
+        document.addEventListener('keyup', (event) => {
+            switch (event.key.toLowerCase()) {
+                case 'w':
+                case 'arrowup':
+                    this.keys.forward = false;
+                    break;
+                case 's':
+                case 'arrowdown':
+                    this.keys.backward = false;
+                    break;
+                case 'a':
+                case 'arrowleft':
+                    this.keys.left = false;
+                    break;
+                case 'd':
+                case 'arrowright':
+                    this.keys.right = false;
+                    break;
+                case ' ':
+                    this.keys.jump = false;
                     break;
             }
         });
@@ -260,6 +284,9 @@ class Player {
         // マズルフラッシュの表示
         this.showMuzzleFlash();
         
+        // 弾道エフェクトの作成
+        this.createBulletTrail();
+        
         // レイキャスト（弾道計算）して敵との当たり判定
         const hit = this.game.raycast(this.position, this.rotation, GameConfig.player.weaponRange);
         
@@ -272,6 +299,9 @@ class Player {
             
             // ヒット効果音
             this.game.playSound('hit');
+            
+            // ヒットエフェクトを表示
+            this.createHitEffect(hit.point);
             
             console.log(`敵に命中! ダメージ: ${damage}`);
         } else {
@@ -290,6 +320,106 @@ class Player {
         
         // HUDの更新
         this.updateHUD();
+    }
+    
+    /**
+     * 弾道エフェクトの作成
+     */
+    createBulletTrail() {
+        // 弾道の開始位置（マズルフラッシュの位置）
+        const startPosition = new THREE.Vector3();
+        this.muzzleFlash.getWorldPosition(startPosition);
+        
+        // 弾道の方向ベクトル
+        const direction = new THREE.Vector3(
+            Math.sin(this.rotation.y) * Math.cos(this.rotation.x),
+            Math.sin(this.rotation.x),
+            Math.cos(this.rotation.y) * Math.cos(this.rotation.x)
+        ).normalize();
+        
+        // 弾道の終了位置（一定距離前方）
+        const endPosition = new THREE.Vector3().copy(startPosition).add(
+            direction.clone().multiplyScalar(50)
+        );
+        
+        // レイキャストで実際の衝突位置を検出
+        const raycaster = new THREE.Raycaster(startPosition, direction);
+        const targets = this.game.enemies
+            .filter(enemy => enemy.model && !enemy.isDead)
+            .map(enemy => enemy.model);
+        
+        // 環境オブジェクトも含める
+        const environmentObjects = this.game.gameObjects.environment;
+        const allTargets = [...targets, ...environmentObjects];
+        
+        const intersects = raycaster.intersectObjects(allTargets, true);
+        if (intersects.length > 0) {
+            // 衝突地点があればそこまでの弾道を描画
+            endPosition.copy(intersects[0].point);
+        }
+        
+        // 弾道を表す線分を作成
+        const trailGeometry = new THREE.BufferGeometry().setFromPoints([
+            startPosition,
+            endPosition
+        ]);
+        
+        const trailMaterial = new THREE.LineBasicMaterial({ 
+            color: this.specialAbilityActive ? 0x00ffff : 0xffffaa,
+            transparent: true,
+            opacity: 0.8,
+            linewidth: 1
+        });
+        
+        const trail = new THREE.Line(trailGeometry, trailMaterial);
+        this.game.scene.add(trail);
+        
+        // 少し経過したら弾道を消す
+        setTimeout(() => {
+            this.game.scene.remove(trail);
+            trail.geometry.dispose();
+            trail.material.dispose();
+        }, 100);
+    }
+    
+    /**
+     * ヒットエフェクトの表示
+     */
+    createHitEffect(position) {
+        if (!position) return;
+        
+        // ヒットエフェクト（パーティクル）
+        const particleCount = 20;
+        const geometry = new THREE.BufferGeometry();
+        const vertices = [];
+        
+        for (let i = 0; i < particleCount; i++) {
+            // ヒット地点から全方向にパーティクルを飛ばす
+            const x = (Math.random() - 0.5) * 0.5;
+            const y = (Math.random() - 0.5) * 0.5;
+            const z = (Math.random() - 0.5) * 0.5;
+            
+            vertices.push(position.x, position.y, position.z);
+            vertices.push(position.x + x, position.y + y, position.z + z);
+        }
+        
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        
+        const material = new THREE.LineBasicMaterial({
+            color: this.specialAbilityActive ? 0x00ffff : 0xff0000,
+            transparent: true,
+            opacity: 0.8
+        });
+        
+        const particles = new THREE.LineSegments(geometry, material);
+        this.game.scene.add(particles);
+        
+        // 少し経過したらエフェクトを消す
+        setTimeout(() => {
+            this.game.scene.remove(particles);
+            particles.geometry.dispose();
+            particles.material.dispose();
+        }, 300);
     }
     
     /**

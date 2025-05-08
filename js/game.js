@@ -117,7 +117,36 @@ class Game {
         // サウンド設定
         const soundConfig = GameConfig.sounds;
         
-        // 将来的にはここでサウンドファイルをロードする
+        // サウンドファイルをロード
+        this.loadSounds(soundConfig);
+    }
+    
+    /**
+     * サウンドファイルのロード
+     */
+    loadSounds(soundConfig) {
+        const loadAudioBuffer = (url, name) => {
+            fetch(url)
+                .then(response => response.arrayBuffer())
+                .then(arrayBuffer => this.audioContext.decodeAudioData(arrayBuffer))
+                .then(audioBuffer => {
+                    this.soundBuffers[name] = audioBuffer;
+                    console.log(`Sound loaded: ${name}`);
+                })
+                .catch(error => {
+                    console.error(`Error loading sound ${name}:`, error);
+                });
+        };
+        
+        // 効果音のロード
+        for (const [name, path] of Object.entries(soundConfig.effects)) {
+            loadAudioBuffer(`assets/sounds/effects/${path}`, name);
+        }
+        
+        // BGMのロード
+        for (const [name, path] of Object.entries(soundConfig.music)) {
+            loadAudioBuffer(`assets/sounds/bgm/${path}`, name);
+        }
     }
     
     /**
@@ -294,6 +323,210 @@ class Game {
         rightWall.name = "wall";
         this.scene.add(rightWall);
         this.gameObjects.environment.push(rightWall);
+        
+        // 天井（光源の遮蔽のために使用）
+        const ceilingGeometry = new THREE.PlaneGeometry(50, 50);
+        const ceilingMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0xffffff,
+            side: THREE.DoubleSide
+        });
+        const ceiling = new THREE.Mesh(ceilingGeometry, ceilingMaterial);
+        ceiling.rotation.x = Math.PI / 2;
+        ceiling.position.set(0, 10, 0);
+        ceiling.receiveShadow = true;
+        ceiling.name = "ceiling";
+        this.scene.add(ceiling);
+        this.gameObjects.environment.push(ceiling);
+        
+        // 基本的な遮蔽物を追加
+        this.addObstacles();
+    }
+    
+    /**
+     * 基本的な遮蔽物を追加
+     */
+    addObstacles() {
+        // デスク用の素材
+        const deskMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+        const metalMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x888888,
+            metalness: 0.7,
+            roughness: 0.2
+        });
+        const chairMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
+        const screenMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x111133,
+            emissive: 0x222244,
+            emissiveIntensity: 0.5
+        });
+        
+        // 中央に会議テーブルを配置
+        const tableGeometry = new THREE.BoxGeometry(8, 0.5, 3);
+        const table = new THREE.Mesh(tableGeometry, deskMaterial);
+        table.position.set(0, 0.75, 0);
+        table.castShadow = true;
+        table.receiveShadow = true;
+        table.name = "obstacle";
+        this.scene.add(table);
+        this.gameObjects.environment.push(table);
+        
+        // 椅子を会議テーブルの周りに配置
+        for (let i = 0; i < 6; i++) {
+            const chairGeometry = new THREE.BoxGeometry(0.6, 1.2, 0.6);
+            const chair = new THREE.Mesh(chairGeometry, chairMaterial);
+            
+            const angle = (i / 6) * Math.PI * 2;
+            const radius = 2;
+            
+            const x = Math.sin(angle) * radius;
+            const z = Math.cos(angle) * radius;
+            
+            chair.position.set(x, 0.6, z);
+            chair.castShadow = true;
+            chair.receiveShadow = true;
+            chair.name = "obstacle";
+            this.scene.add(chair);
+            this.gameObjects.environment.push(chair);
+        }
+        
+        // デスクを部屋の四隅に配置
+        const deskPositions = [
+            { x: -15, z: -15, rotY: Math.PI / 4 },
+            { x: 15, z: -15, rotY: -Math.PI / 4 },
+            { x: -15, z: 15, rotY: -Math.PI / 4 },
+            { x: 15, z: 15, rotY: Math.PI / 4 }
+        ];
+        
+        deskPositions.forEach((pos) => {
+            // デスク
+            const deskGeometry = new THREE.BoxGeometry(3, 0.8, 1.5);
+            const desk = new THREE.Mesh(deskGeometry, deskMaterial);
+            desk.position.set(pos.x, 0.4, pos.z);
+            desk.rotation.y = pos.rotY;
+            desk.castShadow = true;
+            desk.receiveShadow = true;
+            desk.name = "obstacle";
+            this.scene.add(desk);
+            this.gameObjects.environment.push(desk);
+            
+            // 椅子
+            const chairGeometry = new THREE.BoxGeometry(0.6, 1.2, 0.6);
+            const chair = new THREE.Mesh(chairGeometry, chairMaterial);
+            const chairOffsetX = Math.sin(pos.rotY) * 1.2;
+            const chairOffsetZ = Math.cos(pos.rotY) * 1.2;
+            chair.position.set(pos.x + chairOffsetX, 0.6, pos.z + chairOffsetZ);
+            chair.castShadow = true;
+            chair.receiveShadow = true;
+            chair.name = "obstacle";
+            this.scene.add(chair);
+            this.gameObjects.environment.push(chair);
+            
+            // モニター
+            const monitorStandGeometry = new THREE.BoxGeometry(0.1, 0.5, 0.1);
+            const monitorStand = new THREE.Mesh(monitorStandGeometry, metalMaterial);
+            monitorStand.position.set(
+                pos.x - Math.sin(pos.rotY) * 0.5,
+                0.8 + 0.25,
+                pos.z - Math.cos(pos.rotY) * 0.5
+            );
+            monitorStand.castShadow = true;
+            monitorStand.receiveShadow = true;
+            this.scene.add(monitorStand);
+            this.gameObjects.environment.push(monitorStand);
+            
+            const monitorGeometry = new THREE.BoxGeometry(1, 0.6, 0.1);
+            const monitor = new THREE.Mesh(monitorGeometry, screenMaterial);
+            monitor.position.set(
+                pos.x - Math.sin(pos.rotY) * 0.5,
+                0.8 + 0.25 + 0.3,
+                pos.z - Math.cos(pos.rotY) * 0.5
+            );
+            monitor.rotation.y = pos.rotY;
+            monitor.castShadow = true;
+            monitor.receiveShadow = true;
+            monitor.name = "obstacle";
+            this.scene.add(monitor);
+            this.gameObjects.environment.push(monitor);
+        });
+        
+        // パーティションを中央から放射状に配置
+        for (let i = 0; i < 4; i++) {
+            const partitionGeometry = new THREE.BoxGeometry(10, 2, 0.2);
+            const partition = new THREE.Mesh(partitionGeometry, new THREE.MeshStandardMaterial({ color: 0xaaaaaa }));
+            
+            const angle = (i / 4) * Math.PI * 2 + Math.PI / 4;
+            const radius = 10;
+            
+            const x = Math.sin(angle) * radius;
+            const z = Math.cos(angle) * radius;
+            
+            partition.position.set(x, 1, z);
+            partition.rotation.y = angle + Math.PI / 2;
+            partition.castShadow = true;
+            partition.receiveShadow = true;
+            partition.name = "obstacle";
+            this.scene.add(partition);
+            this.gameObjects.environment.push(partition);
+        }
+        
+        // 植木鉢をランダムに配置
+        for (let i = 0; i < 6; i++) {
+            const potGeometry = new THREE.CylinderGeometry(0.5, 0.4, 1, 12);
+            const pot = new THREE.Mesh(potGeometry, new THREE.MeshStandardMaterial({ color: 0x773300 }));
+            
+            // ランダムな位置（壁の近くを避ける）
+            const x = (Math.random() - 0.5) * 40;
+            const z = (Math.random() - 0.5) * 40;
+            
+            pot.position.set(x, 0.5, z);
+            pot.castShadow = true;
+            pot.receiveShadow = true;
+            pot.name = "obstacle";
+            this.scene.add(pot);
+            this.gameObjects.environment.push(pot);
+            
+            // 植物
+            const plantGeometry = new THREE.SphereGeometry(0.7, 8, 8);
+            const plant = new THREE.Mesh(plantGeometry, new THREE.MeshStandardMaterial({ color: 0x00aa00 }));
+            plant.position.set(x, 1.5, z);
+            plant.castShadow = true;
+            plant.receiveShadow = true;
+            plant.name = "obstacle";
+            this.scene.add(plant);
+            this.gameObjects.environment.push(plant);
+        }
+        
+        // 高さの異なる障害物を追加（距離感の把握のため）
+        const obstacleGeometries = [
+            new THREE.BoxGeometry(1, 3, 1),
+            new THREE.BoxGeometry(1, 2, 1),
+            new THREE.BoxGeometry(1.5, 1, 1.5),
+            new THREE.CylinderGeometry(0.5, 0.5, 4, 8),
+            new THREE.CylinderGeometry(0.7, 0.7, 2, 8)
+        ];
+        
+        const obstacleColors = [0x8B4513, 0x555555, 0x333333, 0x222222, 0x444444];
+        
+        for (let i = 0; i < 10; i++) {
+            const index = Math.floor(Math.random() * obstacleGeometries.length);
+            const geometry = obstacleGeometries[index];
+            const material = new THREE.MeshStandardMaterial({ color: obstacleColors[index] });
+            const obstacle = new THREE.Mesh(geometry, material);
+            
+            // ランダムな位置（ただし中央付近は避ける）
+            let x, z;
+            do {
+                x = (Math.random() - 0.5) * 40;
+                z = (Math.random() - 0.5) * 40;
+            } while (Math.sqrt(x * x + z * z) < 5); // 中央5mの範囲は避ける
+            
+            obstacle.position.set(x, geometry.parameters.height / 2, z);
+            obstacle.castShadow = true;
+            obstacle.receiveShadow = true;
+            obstacle.name = "obstacle";
+            this.scene.add(obstacle);
+            this.gameObjects.environment.push(obstacle);
+        }
     }
     
     // 各環境タイプごとの作成メソッド（詳細な実装は省略）
@@ -785,17 +1018,79 @@ class Game {
      * 効果音の再生
      */
     playSound(soundName) {
-        // 効果音再生のプレースホルダー
-        // 実際のゲームでは、Web Audio APIなどを使用
-        console.log(`効果音を再生: ${soundName}`);
+        if (this.audioContext && this.soundBuffers[soundName]) {
+            try {
+                // AudioContextが一時停止状態なら再開
+                if (this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+                
+                // 音源を作成
+                const source = this.audioContext.createBufferSource();
+                source.buffer = this.soundBuffers[soundName];
+                
+                // 音量調整
+                const gainNode = this.audioContext.createGain();
+                gainNode.gain.value = 0.5; // 音量は0.0〜1.0
+                
+                // 接続
+                source.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                // 再生
+                source.start(0);
+                
+                return source;
+            } catch (e) {
+                console.error(`Error playing sound ${soundName}:`, e);
+            }
+        } else {
+            console.warn(`Sound not found or audio not initialized: ${soundName}`);
+        }
+        return null;
     }
     
     /**
      * BGMの再生
      */
     playMusic(musicName) {
-        // BGM再生のプレースホルダー
-        console.log(`BGMを再生: ${musicName}`);
+        // 現在再生中のBGMを停止
+        if (this.currentMusic) {
+            this.currentMusic.stop();
+            this.currentMusic = null;
+        }
+        
+        if (this.audioContext && this.soundBuffers[musicName]) {
+            try {
+                // AudioContextが一時停止状態なら再開
+                if (this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+                
+                // 音源を作成
+                const source = this.audioContext.createBufferSource();
+                source.buffer = this.soundBuffers[musicName];
+                source.loop = true; // BGMはループ再生
+                
+                // 音量調整
+                const gainNode = this.audioContext.createGain();
+                gainNode.gain.value = 0.3; // BGMは少し小さめ
+                
+                // 接続
+                source.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                // 再生
+                source.start(0);
+                
+                // 現在のBGMとして保存
+                this.currentMusic = source;
+            } catch (e) {
+                console.error(`Error playing music ${musicName}:`, e);
+            }
+        } else {
+            console.warn(`Music not found or audio not initialized: ${musicName}`);
+        }
     }
 }
 
