@@ -1,0 +1,14 @@
+{
+  "title": "重役会議 - ボス戦テーマ",
+  "description": "ボス戦闘時に使用する緊迫感のあるBGM",
+  "author": "Corporate Battle Game",
+  "duration": "3:15",
+  "loop": true,
+  "tempo": 140,
+  "volume": 0.9,
+  "fadeIn": 0.5,
+  "fadeOut": 3.0,
+  "audioFormat": "mp3",
+  "notes": "緊迫感と威圧感を表現した重厚な楽曲。オーケストラ要素とエレクトロニックサウンドを組み合わせた壮大な曲調。",
+  "tags": ["ボス", "緊迫", "激しい", "オーケストラ"]
+}

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="50" viewBox="0 0 100 50">
+  <!-- 銃の画像 -->
+  <g id="gun">
+    <!-- 銃身 -->
+    <rect x="20" y="15" width="60" height="10" rx="2" ry="2" fill="#333" stroke="#000" stroke-width="1"/>
+    
+    <!-- 銃口 -->
+    <rect x="80" y="13" width="5" height="14" rx="1" ry="1" fill="#222" stroke="#000" stroke-width="1"/>
+    
+    <!-- 銃のグリップ -->
+    <rect x="15" y="15" width="10" height="25" rx="3" ry="3" fill="#444" stroke="#000" stroke-width="1"/>
+    
+    <!-- トリガー -->
+    <rect x="25" y="25" width="5" height="10" rx="1" ry="1" fill="#222" stroke="#000" stroke-width="1"/>
+    
+    <!-- 照準 -->
+    <circle cx="30" cy="12" r="2" fill="#555" stroke="#000" stroke-width="1"/>
+    <rect x="75" y="10" width="2" height="5" fill="#555" stroke="#000" stroke-width="1"/>
+  </g>
+</svg>

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="60" viewBox="0 0 120 60">
+  <!-- 特殊な銃の画像 -->
+  <g id="special_gun">
+    <!-- 銃身 -->
+    <rect x="30" y="20" width="70" height="12" rx="3" ry="3" fill="#3465a4" stroke="#204a87" stroke-width="1"/>
+    
+    <!-- 銃口 -->
+    <rect x="100" y="18" width="8" height="16" rx="2" ry="2" fill="#204a87" stroke="#000" stroke-width="1"/>
+    <circle cx="104" cy="26" r="4" fill="#3465a4" stroke="#000" stroke-width="1"/>
+    
+    <!-- エネルギーコア -->
+    <circle cx="80" cy="26" r="6" fill="#73d216" stroke="#4e9a06" stroke-width="1"/>
+    <circle cx="80" cy="26" r="4" fill="#8ae234" stroke="none"/>
+    <circle cx="80" cy="26" r="2" fill="#ffffff" stroke="none"/>
+    
+    <!-- 銃のグリップ -->
+    <rect x="20" y="20" width="15" height="30" rx="4" ry="4" fill="#555753" stroke="#2e3436" stroke-width="1"/>
+    
+    <!-- トリガー -->
+    <rect x="30" y="32" width="8" height="12" rx="2" ry="2" fill="#2e3436" stroke="#000" stroke-width="1"/>
+    
+    <!-- 照準スコープ -->
+    <rect x="45" y="12" width="25" height="8" rx="2" ry="2" fill="#555753" stroke="#2e3436" stroke-width="1"/>
+    <circle cx="57" cy="16" r="3" fill="#3465a4" stroke="#000" stroke-width="1"/>
+    
+    <!-- 装飾エフェクト -->
+    <line x1="40" y1="25" x2="95" y2="25" stroke="#8ae234" stroke-width="1"/>
+    <line x1="40" y1="27" x2="95" y2="27" stroke="#8ae234" stroke-width="1"/>
+  </g>
+</svg>

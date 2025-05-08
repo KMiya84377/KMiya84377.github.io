@@ -1,0 +1,10 @@
+{
+  "title": "UIクリック音",
+  "description": "ボタンクリックなどUI操作時の効果音",
+  "duration": "0.2",
+  "volume": 0.5,
+  "variations": 1,
+  "audioFormat": "mp3",
+  "category": "ui",
+  "tags": ["UI", "クリック", "操作"]
+}

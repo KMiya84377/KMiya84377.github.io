@@ -1,0 +1,10 @@
+{
+  "title": "基本攻撃音",
+  "description": "プレイヤーや敵の基本攻撃時に使用する効果音",
+  "duration": "0.5",
+  "volume": 0.7,
+  "variations": 3,
+  "audioFormat": "mp3",
+  "category": "combat",
+  "tags": ["攻撃", "ヒット", "戦闘"]
+}

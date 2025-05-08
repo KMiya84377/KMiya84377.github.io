@@ -1,0 +1,92 @@
+{
+  "character": "office_worker",
+  "version": "1.0",
+  "spriteSize": {
+    "width": 64,
+    "height": 96
+  },
+  "animations": {
+    "idle": {
+      "frames": 4,
+      "fps": 5,
+      "loop": true,
+      "description": "パソコンを操作している通常状態"
+    },
+    "walk": {
+      "frames": 8,
+      "fps": 12,
+      "loop": true,
+      "description": "書類を持って歩く動作"
+    },
+    "run": {
+      "frames": 6,
+      "fps": 15,
+      "loop": true,
+      "description": "締め切りに間に合わせるために走る動作"
+    },
+    "attack_basic": {
+      "frames": 5,
+      "fps": 12,
+      "loop": false,
+      "description": "キーボードタイピングによる基本攻撃"
+    },
+    "attack_special": {
+      "frames": 7,
+      "fps": 14,
+      "loop": false,
+      "description": "コーヒーを投げつける特殊攻撃"
+    },
+    "attack_ultimate": {
+      "frames": 10,
+      "fps": 16,
+      "loop": false,
+      "description": "プレゼン資料による必殺技「データ分析」"
+    },
+    "dodge": {
+      "frames": 4,
+      "fps": 10,
+      "loop": false,
+      "description": "仕事の依頼を避ける動作"
+    },
+    "hit": {
+      "frames": 3,
+      "fps": 8,
+      "loop": false,
+      "description": "ダメージを受けてよろめく動作"
+    },
+    "victory": {
+      "frames": 6,
+      "fps": 10,
+      "loop": true,
+      "description": "昇進が決まって喜ぶ動作"
+    },
+    "defeat": {
+      "frames": 5,
+      "fps": 8,
+      "loop": false,
+      "description": "疲れ果てて机に突っ伏す動作"
+    }
+  },
+  "equipment": {
+    "weapon": ["laptop", "pen", "paper_folder", "coffee_mug", "stapler"],
+    "armor": ["business_suit", "casual_friday", "interview_attire"],
+    "accessory": ["id_card", "glasses", "wristwatch", "headphones"]
+  },
+  "colors": {
+    "standard": {
+      "suit": "#283747",
+      "shirt": "#f5f5f5",
+      "tie": "#2e86c1",
+      "hair": "#4a4a4a"
+    },
+    "casual": {
+      "shirt": "#b3d9ff",
+      "pants": "#2c3e50",
+      "hair": "#4a4a4a"
+    },
+    "tired": {
+      "face": "#d6dbdf",
+      "eyes": "#5d6d7e"
+    }
+  }
+}

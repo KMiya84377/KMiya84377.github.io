@@ -1,0 +1,14 @@
+{
+  "title": "コーポレートバトル メインテーマ",
+  "description": "ゲームのメイン画面や通常戦闘で使用するBGM",
+  "author": "Corporate Battle Game",
+  "duration": "2:30",
+  "loop": true,
+  "tempo": 120,
+  "volume": 0.8,
+  "fadeIn": 1.0,
+  "fadeOut": 2.0,
+  "audioFormat": "mp3",
+  "notes": "ビジネスの緊張感と闘争心を表現した楽曲。電子音とピアノの組み合わせが特徴。",
+  "tags": ["メイン", "バトル", "エネルギッシュ"]
+}

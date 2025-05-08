@@ -1,0 +1,13 @@
+{
+  "title": "特殊武器効果音",
+  "description": "高性能武器使用時の効果音",
+  "duration": "1.2",
+  "volume": 0.8,
+  "variations": 2,
+  "audioFormat": "mp3",
+  "category": "combat",
+  "hasCharge": true,
+  "chargeTime": 0.7,
+  "releaseTime": 0.5,
+  "tags": ["特殊武器", "強力", "チャージ"]
+}

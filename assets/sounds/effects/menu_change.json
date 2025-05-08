@@ -1,0 +1,12 @@
+{
+  "title": "メニュー切替音",
+  "description": "メニュー画面切り替え時の効果音",
+  "duration": "0.4",
+  "volume": 0.6,
+  "variations": 1,
+  "audioFormat": "mp3",
+  "category": "ui",
+  "fadeIn": 0.1,
+  "fadeOut": 0.2,
+  "tags": ["UI", "メニュー", "切替"]
+}

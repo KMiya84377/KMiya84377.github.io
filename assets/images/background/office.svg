@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <!-- オフィス背景 -->
+  <g id="office_background">
+    <!-- 背景色 -->
+    <rect width="800" height="600" fill="#f0f0f0"/>
+    
+    <!-- 床 -->
+    <rect y="400" width="800" height="200" fill="#d0d0d0"/>
+    <line x1="0" y1="400" x2="800" y2="400" stroke="#a0a0a0" stroke-width="2"/>
+    
+    <!-- タイル模様 -->
+    <pattern id="floorPattern" patternUnits="userSpaceOnUse" width="100" height="100">
+      <rect width="50" height="50" fill="#c8c8c8"/>
+      <rect x="50" y="0" width="50" height="50" fill="#d0d0d0"/>
+      <rect x="0" y="50" width="50" height="50" fill="#d0d0d0"/>
+      <rect x="50" y="50" width="50" height="50" fill="#c8c8c8"/>
+    </pattern>
+    <rect y="400" width="800" height="200" fill="url(#floorPattern)"/>
+    
+    <!-- 壁 -->
+    <rect y="100" width="800" height="300" fill="#e8e8e8"/>
+    <line x1="0" y1="100" x2="800" y2="100" stroke="#d0d0d0" stroke-width="2"/>
+    
+    <!-- 窓 -->
+    <rect x="100" y="120" width="120" height="180" fill="#a0c8ff" stroke="#808080" stroke-width="2"/>
+    <rect x="300" y="120" width="120" height="180" fill="#a0c8ff" stroke="#808080" stroke-width="2"/>
+    <rect x="500" y="120" width="120" height="180" fill="#a0c8ff" stroke="#808080" stroke-width="2"/>
+    
+    <!-- 窓枠 -->
+    <line x1="160" y1="120" x2="160" y2="300" stroke="#808080" stroke-width="2"/>
+    <line x1="100" y1="210" x2="220" y2="210" stroke="#808080" stroke-width="2"/>
+    
+    <line x1="360" y1="120" x2="360" y2="300" stroke="#808080" stroke-width="2"/>
+    <line x1="300" y1="210" x2="420" y2="210" stroke="#808080" stroke-width="2"/>
+    
+    <line x1="560" y1="120" x2="560" y2="300" stroke="#808080" stroke-width="2"/>
+    <line x1="500" y1="210" x2="620" y2="210" stroke="#808080" stroke-width="2"/>
+    
+    <!-- デスク -->
+    <rect x="50" y="320" width="200" height="80" fill="#8b4513" stroke="#5e2f0d" stroke-width="2"/>
+    <rect x="300" y="320" width="200" height="80" fill="#8b4513" stroke="#5e2f0d" stroke-width="2"/>
+    <rect x="550" y="320" width="200" height="80" fill="#8b4513" stroke="#5e2f0d" stroke-width="2"/>
+    
+    <!-- コンピューター -->
+    <rect x="100" y="300" width="40" height="30" fill="#333333" stroke="#000000" stroke-width="1"/>
+    <rect x="350" y="300" width="40" height="30" fill="#333333" stroke="#000000" stroke-width="1"/>
+    <rect x="600" y="300" width="40" height="30" fill="#333333" stroke="#000000" stroke-width="1"/>
+    
+    <!-- 天井 -->
+    <rect y="0" width="800" height="100" fill="#d8d8d8"/>
+    
+    <!-- 照明 -->
+    <rect x="150" y="20" width="100" height="30" fill="#ffffff" stroke="#e0e0e0" stroke-width="2"/>
+    <rect x="350" y="20" width="100" height="30" fill="#ffffff" stroke="#e0e0e0" stroke-width="2"/>
+    <rect x="550" y="20" width="100" height="30" fill="#ffffff" stroke="#e0e0e0" stroke-width="2"/>
+  </g>
+</svg>

@@ -1,0 +1,81 @@
+{
+  "character": "corporate_boss",
+  "version": "1.0",
+  "spriteSize": {
+    "width": 72,
+    "height": 108
+  },
+  "animations": {
+    "idle": {
+      "frames": 3,
+      "fps": 4,
+      "loop": true,
+      "description": "威厳のある姿勢で立っている状態"
+    },
+    "walk": {
+      "frames": 6,
+      "fps": 10,
+      "loop": true,
+      "description": "自信に満ちた歩き方のアニメーション"
+    },
+    "attack_basic": {
+      "frames": 5,
+      "fps": 12,
+      "loop": false,
+      "description": "鋭い指示を出す基本攻撃"
+    },
+    "attack_special": {
+      "frames": 8,
+      "fps": 14,
+      "loop": false,
+      "description": "評価シートを投げつける強力な特殊攻撃"
+    },
+    "attack_ultimate": {
+      "frames": 12,
+      "fps": 18,
+      "loop": false,
+      "description": "会議室全体を使った必殺技「予算カット」"
+    },
+    "hit": {
+      "frames": 2,
+      "fps": 8,
+      "loop": false,
+      "description": "ダメージを受けた際の微かなリアクション"
+    },
+    "taunt": {
+      "frames": 4,
+      "fps": 6,
+      "loop": true,
+      "description": "部下を見下す威圧的なポーズ"
+    },
+    "defeat": {
+      "frames": 7,
+      "fps": 5,
+      "loop": false,
+      "description": "敗北して椅子に崩れ落ちるアニメーション"
+    }
+  },
+  "equipment": {
+    "weapon": ["clipboard", "luxury_pen", "smartphone", "briefcase"],
+    "armor": ["executive_suit", "luxury_watch", "designer_tie"],
+    "accessory": ["glasses", "bluetooth_earpiece", "gold_cufflinks"]
+  },
+  "colors": {
+    "standard": {
+      "suit": "#1c1c1c",
+      "shirt": "#f0f0f0",
+      "tie": "#8b0000",
+      "hair": "#3a3a3a"
+    },
+    "alternate": {
+      "suit": "#2a3756",
+      "shirt": "#ffffff",
+      "tie": "#15395b",
+      "hair": "#5e5e5e"
+    },
+    "angry": {
+      "face": "#ff9e9e",
+      "tie": "#bf0000"
+    }
+  }
+}
