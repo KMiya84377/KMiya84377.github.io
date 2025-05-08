@@ -26,6 +26,14 @@ class Enemy {
         this.attackSpeed = options.attackSpeed || 1; // 秒間の攻撃回数
         this.score = options.score || 100;
         
+        // 遠距離攻撃の設定
+        this.hasRangedAttack = options.hasRangedAttack || false;
+        this.rangedAttackPower = options.rangedAttackPower || this.attackPower * 0.7;
+        this.rangedAttackRange = options.rangedAttackRange || 12;
+        this.rangedAttackSpeed = options.rangedAttackSpeed || 0.5; // 秒間の攻撃回数
+        this.rangedAttackCooldown = options.rangedAttackCooldown || 3000; // ミリ秒
+        this.lastRangedAttackTime = 0;
+        
         // 位置と動き
         this.position = options.position || { x: 0, y: 0, z: 0 };
         this.rotation = { x: 0, y: 0 };
@@ -34,6 +42,7 @@ class Enemy {
         // 状態フラグ
         this.isActive = true;
         this.isAttacking = false;
+        this.isRangedAttacking = false;
         this.isDead = false;
         this.isDetectingPlayer = false;
         
@@ -45,7 +54,7 @@ class Enemy {
         this.lastAttackTime = 0;
         
         // AI状態
-        this.aiState = 'idle'; // idle, patrol, chase, attack, retreat
+        this.aiState = 'idle'; // idle, patrol, chase, attack, ranged_attack, retreat
         this.patrolPoints = options.patrolPoints || [];
         this.currentPatrolIndex = 0;
         
@@ -90,6 +99,9 @@ class Enemy {
         
         // 攻撃処理
         this.updateAttack();
+        
+        // 遠距離攻撃処理
+        this.updateRangedAttack();
     }
     
     /**
@@ -116,6 +128,12 @@ class Enemy {
                 this.stopMoving();
                 // 攻撃処理は updateAttack() で行う
             } 
+            // 遠距離攻撃範囲内ならば遠距離攻撃
+            else if (this.hasRangedAttack && distanceToPlayer <= this.rangedAttackRange) {
+                this.aiState = 'ranged_attack';
+                this.stopMoving();
+                // 遠距離攻撃処理は updateRangedAttack() で行う
+            }
             // 検知範囲内ならば追跡
             else {
                 this.aiState = 'chase';
@@ -222,6 +240,23 @@ class Enemy {
     }
     
     /**
+     * 遠距離攻撃処理の更新
+     */
+    updateRangedAttack() {
+        // 遠距離攻撃中でない、またはプレイヤーがいない場合
+        if (this.aiState !== 'ranged_attack' || !this.targetPlayer) return;
+        
+        // 現在時刻を取得
+        const currentTime = performance.now();
+        
+        // 前回の遠距離攻撃から十分な時間が経過したか
+        if (currentTime - this.lastRangedAttackTime >= this.rangedAttackCooldown) {
+            this.rangedAttack();
+            this.lastRangedAttackTime = currentTime;
+        }
+    }
+    
+    /**
      * 攻撃実行
      */
     attack() {
@@ -245,6 +280,117 @@ class Enemy {
                 this.isAttacking = false;
             }, 300);
         }
+    }
+    
+    /**
+     * 遠距離攻撃実行
+     */
+    rangedAttack() {
+        // プレイヤーが範囲内にいるかを再確認
+        if (!this.targetPlayer) return;
+        
+        const distanceToPlayer = this.distanceTo(this.targetPlayer.position);
+        
+        if (distanceToPlayer <= this.rangedAttackRange) {
+            // 遠距離攻撃アニメーション（仮）
+            this.isRangedAttacking = true;
+            
+            // 効果音
+            this.game.playSound('enemyRangedAttack');
+            
+            // 攻撃方向を計算
+            const direction = {
+                x: this.targetPlayer.position.x - this.position.x,
+                y: this.targetPlayer.position.y + 1 - (this.position.y + 1), // 目線の高さに合わせる
+                z: this.targetPlayer.position.z - this.position.z
+            };
+            
+            // 方向を正規化
+            const length = Math.sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
+            direction.x /= length;
+            direction.y /= length;
+            direction.z /= length;
+            
+            // 遠距離攻撃エフェクトの作成
+            this.createRangedAttackEffect(direction);
+            
+            // プレイヤーにダメージ（ランダムなミス率を設定）
+            if (Math.random() > 0.3) { // 70%の命中率
+                this.targetPlayer.takeDamage(this.rangedAttackPower, this);
+            }
+            
+            // 遠距離攻撃モーションの終了
+            setTimeout(() => {
+                this.isRangedAttacking = false;
+            }, 300);
+        }
+    }
+    
+    /**
+     * 遠距離攻撃エフェクトの作成
+     */
+    createRangedAttackEffect(direction) {
+        // 攻撃の開始位置（敵の位置、少し高めに）
+        const startPosition = new THREE.Vector3(
+            this.position.x,
+            this.position.y + 1.2, 
+            this.position.z
+        );
+        
+        // 攻撃の終了位置（方向ベクトルを使って計算）
+        const endPosition = new THREE.Vector3(
+            startPosition.x + direction.x * 20,
+            startPosition.y + direction.y * 20,
+            startPosition.z + direction.z * 20
+        );
+        
+        // レイキャストで実際の衝突位置を検出
+        const raycaster = new THREE.Raycaster(startPosition, new THREE.Vector3(direction.x, direction.y, direction.z));
+        const targets = [this.game.player.model];
+        
+        // 環境オブジェクトも含める
+        const environmentObjects = this.game.gameObjects.environment;
+        const allTargets = [...environmentObjects];
+        
+        const intersects = raycaster.intersectObjects(allTargets, true);
+        if (intersects.length > 0) {
+            // 衝突地点があればそこまでの攻撃を描画
+            endPosition.copy(intersects[0].point);
+        }
+        
+        // 攻撃を表す線分を作成
+        const attackGeometry = new THREE.BufferGeometry().setFromPoints([
+            startPosition,
+            endPosition
+        ]);
+        
+        // 敵タイプに応じた攻撃エフェクトの色を設定
+        let attackColor = 0xff0000; // デフォルト: 赤色
+        
+        if (this.type === 'boss' || this.type === 'finalBoss') {
+            attackColor = 0xff00ff; // ボス: 紫色
+        } else if (this.type === 'customer') {
+            attackColor = 0x0000ff; // お客様: 青色
+        } else if (this.type === 'sales') {
+            attackColor = 0x00ff00; // 営業: 緑色
+        }
+        
+        const attackMaterial = new THREE.LineBasicMaterial({ 
+            color: attackColor,
+            transparent: true,
+            opacity: 0.8,
+            linewidth: 2
+        });
+        
+        const attackLine = new THREE.Line(attackGeometry, attackMaterial);
+        this.game.scene.add(attackLine);
+        
+        // 少し経過したら攻撃エフェクトを消す
+        setTimeout(() => {
+            this.game.scene.remove(attackLine);
+            attackLine.geometry.dispose();
+            attackMaterial.dispose();
+        }, 200);
     }
     
     /**
@@ -695,6 +841,20 @@ class EnemyFactory {
         
         switch (type) {
             case 'boss':
+                options = {
+                    ...options,
+                    name: '部長',
+                    health: 500,
+                    attackPower: 25,
+                    attackRange: 3,
+                    detectRange: 20,
+                    moveSpeed: 0.03,
+                    score: 1000,
+                    hasRangedAttack: true,
+                    rangedAttackPower: 20,
+                    rangedAttackRange: 15,
+                    rangedAttackCooldown: 4000
+                };
                 return new BossEnemy(game, options);
                 
             case 'customer':
@@ -704,7 +864,10 @@ class EnemyFactory {
                     health: 120,
                     attackPower: 15,
                     moveSpeed: 0.04,
-                    score: 150
+                    score: 150,
+                    hasRangedAttack: true,
+                    rangedAttackPower: 8,
+                    rangedAttackRange: 10
                 };
                 return new Enemy(game, options);
                 
@@ -715,11 +878,18 @@ class EnemyFactory {
                     health: 80,
                     attackPower: 12,
                     moveSpeed: 0.07,
-                    score: 120
+                    score: 120,
+                    hasRangedAttack: true,
+                    rangedAttackPower: 10,
+                    rangedAttackRange: 12
                 };
                 return new Enemy(game, options);
                 
             case 'intern':
+                options = {
+                    ...options,
+                    hasRangedAttack: false
+                };
                 return new InternEnemy(game, options);
                 
             case 'finalBoss':
@@ -731,7 +901,11 @@ class EnemyFactory {
                     attackRange: 4,
                     detectRange: 25,
                     moveSpeed: 0.04,
-                    score: 5000
+                    score: 5000,
+                    hasRangedAttack: true,
+                    rangedAttackPower: 25,
+                    rangedAttackRange: 20,
+                    rangedAttackCooldown: 3000
                 };
                 return new BossEnemy(game, options);
                 
@@ -742,7 +916,10 @@ class EnemyFactory {
                     health: 100,
                     attackPower: 10,
                     moveSpeed: 0.05,
-                    score: 100
+                    score: 100,
+                    hasRangedAttack: Math.random() > 0.5, // 50%の確率で遠距離攻撃を持つ
+                    rangedAttackPower: 7,
+                    rangedAttackRange: 8
                 };
                 return new Enemy(game, options);
         }

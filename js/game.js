@@ -126,27 +126,124 @@ class Game {
      */
     loadSounds(soundConfig) {
         const loadAudioBuffer = (url, name) => {
+            console.log(`Loading sound: ${name} from ${url}`);
             fetch(url)
-                .then(response => response.arrayBuffer())
-                .then(arrayBuffer => this.audioContext.decodeAudioData(arrayBuffer))
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.arrayBuffer();
+                })
+                .then(arrayBuffer => {
+                    return this.audioContext.decodeAudioData(arrayBuffer);
+                })
                 .then(audioBuffer => {
                     this.soundBuffers[name] = audioBuffer;
-                    console.log(`Sound loaded: ${name}`);
+                    console.log(`Sound loaded successfully: ${name}`);
                 })
                 .catch(error => {
-                    console.error(`Error loading sound ${name}:`, error);
+                    console.error(`Error loading sound ${name} from ${url}:`, error);
                 });
         };
         
         // 効果音のロード
-        for (const [name, path] of Object.entries(soundConfig.effects)) {
+        // GameConfigのsoundsオブジェクトのキーが「sfx」になっているのを修正
+        for (const [name, path] of Object.entries(soundConfig.sfx || {})) {
             loadAudioBuffer(`assets/sounds/effects/${path}`, name);
         }
         
         // BGMのロード
-        for (const [name, path] of Object.entries(soundConfig.music)) {
+        for (const [name, path] of Object.entries(soundConfig.music || {})) {
             loadAudioBuffer(`assets/sounds/bgm/${path}`, name);
         }
+        
+        // 敵の遠距離攻撃用のサウンドを追加
+        loadAudioBuffer('assets/sounds/effects/ranged-attack.mp3', 'enemyRangedAttack');
+        loadAudioBuffer('assets/sounds/effects/switch.mp3', 'switchAbility');
+    }
+    
+    /**
+     * 効果音の再生
+     */
+    playSound(soundName) {
+        if (this.audioContext && this.soundBuffers[soundName]) {
+            try {
+                // AudioContextが一時停止状態なら再開
+                if (this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+                
+                // 音源を作成
+                const source = this.audioContext.createBufferSource();
+                source.buffer = this.soundBuffers[soundName];
+                
+                // 音量調整
+                const gainNode = this.audioContext.createGain();
+                gainNode.gain.value = 0.5; // 音量は0.0〜1.0
+                
+                // 接続
+                source.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                // 再生
+                source.start(0);
+                
+                console.log(`Playing sound: ${soundName}`);
+                return source;
+            } catch (e) {
+                console.error(`Error playing sound ${soundName}:`, e);
+            }
+        } else {
+            console.warn(`Sound not found or audio not initialized: ${soundName}`);
+        }
+        return null;
+    }
+    
+    /**
+     * BGMの再生
+     */
+    playMusic(musicName) {
+        // 現在再生中のBGMを停止
+        if (this.currentMusic) {
+            this.currentMusic.stop();
+            this.currentMusic = null;
+        }
+        
+        if (this.audioContext && this.soundBuffers[musicName]) {
+            try {
+                // AudioContextが一時停止状態なら再開
+                if (this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+                
+                // 音源を作成
+                const source = this.audioContext.createBufferSource();
+                source.buffer = this.soundBuffers[musicName];
+                source.loop = true; // BGMはループ再生
+                
+                // 音量調整
+                const gainNode = this.audioContext.createGain();
+                gainNode.gain.value = 0.3; // BGMは少し小さめ
+                
+                // 接続
+                source.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                // 再生
+                source.start(0);
+                console.log(`Playing music: ${musicName}`);
+                
+                // 現在のBGMとして保存
+                this.currentMusic = source;
+                
+                return source;
+            } catch (e) {
+                console.error(`Error playing music ${musicName}:`, e);
+            }
+        } else {
+            console.warn(`Music not found or audio not initialized: ${musicName}`);
+        }
+        return null;
     }
     
     /**
@@ -809,32 +906,63 @@ class Game {
     }
     
     /**
+     * テクスチャをロードする関数
+     */
+    loadTexture(path) {
+        const textureLoader = new THREE.TextureLoader();
+        return textureLoader.load(path);
+    }
+    
+    /**
      * 敵の3Dモデルを作成
      */
     createEnemyModel(enemy) {
         // 敵のタイプに応じたモデルを作成
         let geometry, material;
+        const textureLoader = new THREE.TextureLoader();
         
         switch (enemy.type) {
             case 'boss':
                 geometry = new THREE.BoxGeometry(1.2, 2.2, 1.2);
-                material = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+                material = new THREE.MeshStandardMaterial({
+                    map: this.loadTexture('assets/images/characters/boss.svg'),
+                    roughness: 0.7,
+                    metalness: 0.3
+                });
                 break;
             case 'customer':
                 geometry = new THREE.BoxGeometry(1, 2, 1);
-                material = new THREE.MeshStandardMaterial({ color: 0x0000ff });
+                material = new THREE.MeshStandardMaterial({
+                    map: this.loadTexture('assets/images/characters/customer.svg'),
+                    roughness: 0.8,
+                    metalness: 0.2
+                });
                 break;
             case 'sales':
                 geometry = new THREE.BoxGeometry(0.9, 1.9, 0.9);
-                material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+                material = new THREE.MeshStandardMaterial({
+                    map: this.loadTexture('assets/images/characters/sales.svg'),
+                    roughness: 0.7,
+                    metalness: 0.2
+                });
                 break;
             case 'finalBoss':
                 geometry = new THREE.BoxGeometry(1.5, 2.5, 1.5);
-                material = new THREE.MeshStandardMaterial({ color: 0x880000 });
+                material = new THREE.MeshStandardMaterial({
+                    map: this.loadTexture('assets/images/characters/finalboss.svg'),
+                    roughness: 0.5,
+                    metalness: 0.5,
+                    emissive: 0x330000,
+                    emissiveIntensity: 0.2
+                });
                 break;
             default:
                 geometry = new THREE.BoxGeometry(1, 2, 1);
-                material = new THREE.MeshStandardMaterial({ color: 0x888888 });
+                material = new THREE.MeshStandardMaterial({
+                    map: this.loadTexture('assets/images/characters/default_enemy.svg'),
+                    roughness: 0.8,
+                    metalness: 0.2
+                });
         }
         
         const model = new THREE.Mesh(geometry, material);
@@ -1012,85 +1140,6 @@ class Game {
         // 画面を表示
         this.hideAllScreens();
         this.screens.victory.classList.add('active');
-    }
-    
-    /**
-     * 効果音の再生
-     */
-    playSound(soundName) {
-        if (this.audioContext && this.soundBuffers[soundName]) {
-            try {
-                // AudioContextが一時停止状態なら再開
-                if (this.audioContext.state === 'suspended') {
-                    this.audioContext.resume();
-                }
-                
-                // 音源を作成
-                const source = this.audioContext.createBufferSource();
-                source.buffer = this.soundBuffers[soundName];
-                
-                // 音量調整
-                const gainNode = this.audioContext.createGain();
-                gainNode.gain.value = 0.5; // 音量は0.0〜1.0
-                
-                // 接続
-                source.connect(gainNode);
-                gainNode.connect(this.audioContext.destination);
-                
-                // 再生
-                source.start(0);
-                
-                return source;
-            } catch (e) {
-                console.error(`Error playing sound ${soundName}:`, e);
-            }
-        } else {
-            console.warn(`Sound not found or audio not initialized: ${soundName}`);
-        }
-        return null;
-    }
-    
-    /**
-     * BGMの再生
-     */
-    playMusic(musicName) {
-        // 現在再生中のBGMを停止
-        if (this.currentMusic) {
-            this.currentMusic.stop();
-            this.currentMusic = null;
-        }
-        
-        if (this.audioContext && this.soundBuffers[musicName]) {
-            try {
-                // AudioContextが一時停止状態なら再開
-                if (this.audioContext.state === 'suspended') {
-                    this.audioContext.resume();
-                }
-                
-                // 音源を作成
-                const source = this.audioContext.createBufferSource();
-                source.buffer = this.soundBuffers[musicName];
-                source.loop = true; // BGMはループ再生
-                
-                // 音量調整
-                const gainNode = this.audioContext.createGain();
-                gainNode.gain.value = 0.3; // BGMは少し小さめ
-                
-                // 接続
-                source.connect(gainNode);
-                gainNode.connect(this.audioContext.destination);
-                
-                // 再生
-                source.start(0);
-                
-                // 現在のBGMとして保存
-                this.currentMusic = source;
-            } catch (e) {
-                console.error(`Error playing music ${musicName}:`, e);
-            }
-        } else {
-            console.warn(`Music not found or audio not initialized: ${musicName}`);
-        }
     }
 }
 

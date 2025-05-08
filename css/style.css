@@ -273,6 +273,38 @@ button:hover {
     line-height: 1.6;
 }
 
+/* 特殊能力切り替えボタンのスタイル */
+#switch-ability-button {
+    background-color: #4ea6ff;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    font-size: 12px;
+    padding: 2px 5px;
+    margin-left: 5px;
+    cursor: pointer;
+    vertical-align: middle;
+    transition: background-color 0.2s;
+}
+
+#switch-ability-button:hover {
+    background-color: #ff00ff;
+}
+
+#special-ability-type {
+    font-weight: bold;
+    color: #4ea6ff;
+}
+
+/* 特殊能力タイプごとのカラーバリエーション */
+#special-ability-type.attack {
+    color: #ff3366;
+}
+
+#special-ability-type.buff {
+    color: #33cc33;
+}
+
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
     .screen h1 {

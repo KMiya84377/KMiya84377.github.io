@@ -16,6 +16,9 @@ class Player {
         this.specialAbilityActive = false;
         this.specialAbilityMeter = 0;
         
+        // 特殊能力のタイプ: "attack"(攻撃強化) または "buff"(バフ/防御強化)
+        this.specialAbilityType = "attack";
+        
         // 位置と方向
         this.position = { x: 0, y: 0, z: 0 };
         this.rotation = { x: 0, y: 0, z: 0 };
@@ -157,6 +160,14 @@ class Player {
             }
         });
         
+        // 特殊能力切り替えボタンのイベントリスナー
+        const switchButton = document.getElementById('switch-ability-button');
+        if (switchButton) {
+            switchButton.addEventListener('click', () => {
+                this.switchSpecialAbilityType();
+            });
+        }
+        
         // マウス動作
         document.addEventListener('mousemove', (event) => {
             if (this.game.isActive) {
@@ -191,27 +202,30 @@ class Player {
     move() {
         // 移動方向を計算
         const moveSpeed = GameConfig.player.moveSpeed;
+        // 特殊能力「バフ」発動中は移動速度アップ
+        const speedMultiplier = (this.specialAbilityActive && this.specialAbilityType === "buff") ? 1.5 : 1;
+        
         let moveVector = { x: 0, y: 0, z: 0 };
         
-        // 現在向いている方向を基準に前後左右の移動を計算
-        if (this.keys.forward) {
-            moveVector.z -= Math.cos(this.rotation.y) * moveSpeed;
-            moveVector.x -= Math.sin(this.rotation.y) * moveSpeed;
+        // 現在向いている方向を基準に前後左右の移動を計算（修正版）
+        if (this.keys.forward) {  // Wキー: 前進
+            moveVector.z -= Math.cos(this.rotation.y) * moveSpeed * speedMultiplier;
+            moveVector.x -= Math.sin(this.rotation.y) * moveSpeed * speedMultiplier;
         }
         
-        if (this.keys.backward) {
-            moveVector.z += Math.cos(this.rotation.y) * moveSpeed;
-            moveVector.x += Math.sin(this.rotation.y) * moveSpeed;
+        if (this.keys.backward) { // Sキー: 後退
+            moveVector.z += Math.cos(this.rotation.y) * moveSpeed * speedMultiplier;
+            moveVector.x += Math.sin(this.rotation.y) * moveSpeed * speedMultiplier;
         }
         
-        if (this.keys.left) {
-            moveVector.z -= Math.sin(this.rotation.y) * moveSpeed;
-            moveVector.x += Math.cos(this.rotation.y) * moveSpeed;
+        if (this.keys.left) {     // Aキー: 左へ移動
+            moveVector.z -= Math.sin(this.rotation.y) * moveSpeed * speedMultiplier;
+            moveVector.x += Math.cos(this.rotation.y) * moveSpeed * speedMultiplier;
         }
         
-        if (this.keys.right) {
-            moveVector.z += Math.sin(this.rotation.y) * moveSpeed;
-            moveVector.x -= Math.cos(this.rotation.y) * moveSpeed;
+        if (this.keys.right) {    // Dキー: 右へ移動
+            moveVector.z += Math.sin(this.rotation.y) * moveSpeed * speedMultiplier;
+            moveVector.x -= Math.cos(this.rotation.y) * moveSpeed * speedMultiplier;
         }
         
         // 移動量を適用
@@ -480,6 +494,60 @@ class Player {
     }
     
     /**
+     * 特殊能力のタイプを切り替える
+     */
+    switchSpecialAbilityType() {
+        // 特殊能力がアクティブ中は切り替え不可
+        if (this.specialAbilityActive) return;
+        
+        // タイプを切り替え
+        this.specialAbilityType = this.specialAbilityType === "attack" ? "buff" : "attack";
+        
+        // UIの更新
+        const typeElement = document.getElementById('special-ability-type');
+        if (typeElement) {
+            typeElement.textContent = this.specialAbilityType === "attack" ? "攻撃強化" : "防御強化";
+            typeElement.className = this.specialAbilityType; // CSSクラスを更新
+        }
+        
+        // 切り替え音を再生
+        this.game.playSound('switchAbility');
+        
+        // エフェクトカラーの更新
+        this.updateSpecialEffectColor();
+    }
+    
+    /**
+     * 特殊能力の効果を適用
+     */
+    applySpecialAbilityEffect() {
+        if (this.specialAbilityType === "attack") {
+            // 攻撃強化モードの効果
+            // 既存の実装で、shoot() メソッド内でダメージが2倍になる
+        } else if (this.specialAbilityType === "buff") {
+            // 防御強化モードの効果
+            // 既存の実装で、takeDamage() メソッド内でダメージが半減
+            // 追加効果として、一時的に回復
+            this.heal(this.maxHealth * 0.1); // 最大体力の10%回復
+            
+            // 移動速度一時的アップの効果も追加可能
+            // この部分は move() メソッド内で対応する必要がある
+        }
+    }
+    
+    /**
+     * 特殊能力エフェクトの色を更新
+     */
+    updateSpecialEffectColor() {
+        const color = this.specialAbilityType === "attack" ? 0x00ffff : 0x33cc33;
+        this.specialEffects.forEach(effect => {
+            if (effect && effect.material) {
+                effect.material.color.setHex(color);
+            }
+        });
+    }
+    
+    /**
      * 特殊能力の使用
      */
     useSpecialAbility() {
@@ -489,17 +557,26 @@ class Player {
         this.specialAbilityActive = true;
         this.game.playSound('specialAbility');
         
+        // 特殊能力効果の適用
+        this.applySpecialAbilityEffect();
+        
         // 特殊能力のエフェクト表示
         this.showSpecialAbilityEffect();
         
         // HUDの更新
-        document.querySelector('#special-meter .bar-fill').style.width = '100%';
-        document.querySelector('#special-meter .bar-fill').style.backgroundColor = '#ff00ff';
+        const barFill = document.querySelector('#special-meter .bar-fill');
+        if (barFill) {
+            barFill.style.width = '100%';
+            barFill.style.backgroundColor = this.specialAbilityType === "attack" ? '#ff00ff' : '#33cc33';
+        }
         
         // 特殊能力の効果時間
         setTimeout(() => {
             this.specialAbilityActive = false;
-            document.querySelector('#special-meter .bar-fill').style.backgroundColor = '#4ea6ff';
+            
+            if (barFill) {
+                barFill.style.backgroundColor = '#4ea6ff';
+            }
             
             // 特殊能力エフェクト終了
             this.hideSpecialAbilityEffect();
@@ -512,7 +589,9 @@ class Player {
                 cooldownProgress += cooldownInterval;
                 const percentage = (cooldownProgress / GameConfig.player.specialAbilityCooldown) * 100;
                 
-                document.querySelector('#special-meter .bar-fill').style.width = percentage + '%';
+                if (barFill) {
+                    barFill.style.width = percentage + '%';
+                }
                 
                 if (cooldownProgress >= GameConfig.player.specialAbilityCooldown) {
                     clearInterval(cooldownTimer);
