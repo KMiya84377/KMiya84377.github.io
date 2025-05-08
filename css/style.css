@@ -305,6 +305,69 @@ button:hover {
     color: #33cc33;
 }
 
+/* ミニマップ */
+#minimap-container {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 200px;
+    height: 200px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    border-radius: 5px;
+    z-index: 10;
+    overflow: hidden;
+}
+
+#minimap {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.minimap-marker {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.player-marker {
+    width: 10px;
+    height: 10px;
+    background-color: #4ea6ff;
+    border: 1px solid white;
+    border-radius: 50%;
+    z-index: 12; /* プレイヤーを最前面に */
+    box-shadow: 0 0 5px #4ea6ff;
+}
+
+#map-label {
+    position: absolute;
+    top: 5px;
+    left: 10px;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* マップ上の敵表示 */
+.enemy-marker {
+    width: 6px;
+    height: 6px;
+    background-color: #ff3366;
+    border-radius: 50%;
+    z-index: 11;
+}
+
+/* マップ上の障害物表示 */
+.obstacle-marker {
+    width: 4px;
+    height: 4px;
+    background-color: rgba(150, 150, 150, 0.7);
+    z-index: 10;
+}
+
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
     .screen h1 {
@@ -317,5 +380,10 @@ button:hover {
     
     #health-bar, #special-meter {
         width: 150px;
+    }
+    
+    #minimap-container {
+        width: 150px;
+        height: 150px;
     }
 }

@@ -102,6 +102,9 @@ class Enemy {
         
         // 遠距離攻撃処理
         this.updateRangedAttack();
+        
+        // 衝突判定
+        this.checkCollision();
     }
     
     /**
@@ -487,6 +490,118 @@ class Enemy {
             };
             
             animate();
+        }
+    }
+    
+    /**
+     * 衝突判定の処理
+     */
+    checkCollision() {
+        // 敵の円柱状のバウンディングボックス
+        const enemyRadius = 0.5; // 敵の横幅（半径）
+        
+        // 部屋の境界チェック
+        const roomSize = 24; // 部屋の半分のサイズ（余裕を持たせる）
+        
+        // X座標の制限
+        if (this.position.x > roomSize) this.position.x = roomSize;
+        if (this.position.x < -roomSize) this.position.x = -roomSize;
+        
+        // Z座標の制限
+        if (this.position.z > roomSize) this.position.z = roomSize;
+        if (this.position.z < -roomSize) this.position.z = -roomSize;
+        
+        // プレイヤーとの衝突を防ぐ（近すぎる場合は少し離す）
+        if (this.target && this.target.position) {
+            const dx = this.target.position.x - this.position.x;
+            const dz = this.target.position.z - this.position.z;
+            const distanceSquared = dx * dx + dz * dz;
+            
+            const minDistance = 2.0; // プレイヤーとの最小距離
+            if (distanceSquared < minDistance * minDistance) {
+                // プレイヤーから離れる方向に移動
+                const angle = Math.atan2(dx, dz);
+                const pushDistance = minDistance - Math.sqrt(distanceSquared);
+                this.position.x -= Math.sin(angle) * pushDistance;
+                this.position.z -= Math.cos(angle) * pushDistance;
+            }
+        }
+        
+        // 環境内の障害物との衝突チェック
+        const obstacles = this.game.gameObjects.environment.filter(obj => 
+            obj.name === "obstacle" || obj.name === "furniture" || obj.name === "wall");
+        
+        // 前のフレームの位置を記憶（衝突時に戻すため）
+        const previousPosition = { x: this.position.x, y: this.position.y, z: this.position.z };
+        
+        for (const obstacle of obstacles) {
+            if (!obstacle.geometry) continue; // ジオメトリがない場合はスキップ
+            
+            try {
+                // 障害物のバウンディングボックスを取得
+                let box;
+                if (!obstacle.geometry.boundingBox) {
+                    obstacle.geometry.computeBoundingBox();
+                }
+                box = obstacle.geometry.boundingBox.clone();
+                
+                // ワールド座標系に変換
+                box.applyMatrix4(obstacle.matrixWorld);
+                
+                // 障害物の位置を取得
+                const obstaclePos = new THREE.Vector3();
+                obstacle.getWorldPosition(obstaclePos);
+                
+                // 敵から障害物への方向ベクトル
+                const dx = obstaclePos.x - this.position.x;
+                const dz = obstaclePos.z - this.position.z;
+                
+                // 距離の2乗
+                const distanceSquared = dx * dx + dz * dz;
+                
+                // 衝突判定の半径
+                const boxSize = new THREE.Vector3();
+                box.getSize(boxSize);
+                const obstacleRadius = Math.max(boxSize.x, boxSize.z) / 2;
+                
+                // 衝突判定
+                const minDistance = enemyRadius + obstacleRadius;
+                if (distanceSquared < minDistance * minDistance) {
+                    // 衝突しているので位置を調整
+                    if (distanceSquared > 0) {
+                        const angle = Math.atan2(dx, dz);
+                        const pushDistance = minDistance - Math.sqrt(distanceSquared) + 0.1; // 余分に押し戻す
+                        
+                        this.position.x = previousPosition.x - Math.sin(angle) * pushDistance;
+                        this.position.z = previousPosition.z - Math.cos(angle) * pushDistance;
+                    } else {
+                        // 完全に重なっている場合はランダムな方向に押し出す
+                        const randomAngle = Math.random() * Math.PI * 2;
+                        this.position.x = obstaclePos.x + Math.sin(randomAngle) * minDistance;
+                        this.position.z = obstaclePos.z + Math.cos(randomAngle) * minDistance;
+                    }
+                }
+            } catch (e) {
+                console.warn("敵の衝突判定処理でエラー:", e);
+                continue; // エラーが発生した場合はこの障害物をスキップ
+            }
+        }
+        
+        // 敵同士の衝突を防止
+        const otherEnemies = this.game.enemies.filter(enemy => enemy !== this && !enemy.isDead);
+        for (const otherEnemy of otherEnemies) {
+            const dx = otherEnemy.position.x - this.position.x;
+            const dz = otherEnemy.position.z - this.position.z;
+            const distanceSquared = dx * dx + dz * dz;
+            
+            const minDistance = 1.5; // 敵同士の最小距離
+            if (distanceSquared < minDistance * minDistance) {
+                // 互いに離れる方向に移動
+                const angle = Math.atan2(dx, dz);
+                const pushDistance = minDistance - Math.sqrt(distanceSquared);
+                this.position.x -= Math.sin(angle) * pushDistance * 0.5;
+                this.position.z -= Math.cos(angle) * pushDistance * 0.5;
+            }
         }
     }
 }

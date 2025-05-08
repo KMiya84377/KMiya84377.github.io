@@ -28,6 +28,16 @@ class Game {
             effects: []
         };
         
+        // ミニマップ関連
+        this.minimapScale = 6; // 3D座標からミニマップへのスケール係数
+        this.minimapElements = {
+            container: null,
+            map: null,
+            playerMarker: null,
+            enemyMarkers: [],
+            obstacleMarkers: []
+        };
+        
         // 画面要素
         this.screens = {
             loading: document.getElementById('loading-screen'),
@@ -271,6 +281,9 @@ class Game {
         // イベントリスナーのセットアップ
         this.setupEventListeners();
         
+        // ミニマップの初期化
+        this.initMinimap();
+        
         // ゲームマネージャーの初期化
         this.stageManager = new StageManager(this);
         this.storyManager = new StoryManager(this);
@@ -318,8 +331,8 @@ class Game {
         this.scene.add(directionalLight);
         this.lights.push(directionalLight);
         
-        // 地面の作成
-        const groundGeometry = new THREE.PlaneGeometry(100, 100);
+        // 地面の作成 - より大きな地面を作成して落下を防止
+        const groundGeometry = new THREE.PlaneGeometry(200, 200); // 広い地面
         const groundMaterial = new THREE.MeshStandardMaterial({
             color: 0x999999,
             roughness: 0.8,
@@ -328,8 +341,12 @@ class Game {
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2; // 水平に寝かせる
         ground.receiveShadow = true;
+        ground.name = "ground"; // 地面と明確に識別
         this.scene.add(ground);
         this.gameObjects.environment.push(ground);
+        
+        // 見えない壁を作成して、プレイヤーが環境外に出るのを防ぐ
+        this.createBoundaryWalls();
         
         // 背景用のメッシュ（遠くの風景を表現）
         this.setupBackgroundMesh();
@@ -340,6 +357,65 @@ class Game {
             this.camera.updateProjectionMatrix();
             this.renderer.setSize(window.innerWidth, window.innerHeight);
         });
+    }
+    
+    /**
+     * 環境の境界壁を作成し、プレイヤーが外に出ないようにする
+     */
+    createBoundaryWalls() {
+        // 境界のサイズ - プレイヤーの移動可能範囲
+        const boundarySize = 25;
+        const wallHeight = 10;
+        const wallThickness = 1;
+        
+        // 壁の素材（透明で衝突判定あり）
+        const wallMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xffffff,
+            transparent: true, 
+            opacity: 0.0 // 完全に透明
+        });
+        
+        // 前の壁
+        const frontWall = new THREE.Mesh(
+            new THREE.BoxGeometry(boundarySize * 2, wallHeight, wallThickness), 
+            wallMaterial
+        );
+        frontWall.position.set(0, wallHeight / 2, boundarySize);
+        frontWall.name = "boundaryWall";
+        this.scene.add(frontWall);
+        this.gameObjects.environment.push(frontWall);
+        
+        // 後ろの壁
+        const backWall = new THREE.Mesh(
+            new THREE.BoxGeometry(boundarySize * 2, wallHeight, wallThickness), 
+            wallMaterial
+        );
+        backWall.position.set(0, wallHeight / 2, -boundarySize);
+        backWall.name = "boundaryWall";
+        this.scene.add(backWall);
+        this.gameObjects.environment.push(backWall);
+        
+        // 左の壁
+        const leftWall = new THREE.Mesh(
+            new THREE.BoxGeometry(wallThickness, wallHeight, boundarySize * 2), 
+            wallMaterial
+        );
+        leftWall.position.set(-boundarySize, wallHeight / 2, 0);
+        leftWall.name = "boundaryWall";
+        this.scene.add(leftWall);
+        this.gameObjects.environment.push(leftWall);
+        
+        // 右の壁
+        const rightWall = new THREE.Mesh(
+            new THREE.BoxGeometry(wallThickness, wallHeight, boundarySize * 2), 
+            wallMaterial
+        );
+        rightWall.position.set(boundarySize, wallHeight / 2, 0);
+        rightWall.name = "boundaryWall";
+        this.scene.add(rightWall);
+        this.gameObjects.environment.push(rightWall);
+        
+        console.log("環境の境界壁を作成しました");
     }
     
     /**
@@ -1703,15 +1779,6 @@ class Game {
         // 基本的なオフィス環境をセットアップ
         this.createOfficeEnvironment();
         
-        // 照明を炎の効果に変更
-        this.lights.forEach(light => {
-            if (light instanceof THREE.PointLight) {
-                this.scene.remove(light);
-            }
-        });
-        this.lights = this.lights.filter(light => !(light instanceof THREE.PointLight));
-        
-        // 炎の光源を追加
         const firePositions = [
             { x: -8, y: 0, z: -8 },
             { x: 8, y: 0, z: 8 },
@@ -2100,21 +2167,145 @@ class Game {
         this.isGameOver = false;
         this.isVictory = false;
         
-        // 敵をクリア
-        this.enemies = [];
+        console.log("ゲームを開始します");
         
-        // プレイヤーを初期化
-        this.player = new Player(this);
+        // 敵をクリア
+        this.enemies.forEach(enemy => {
+            if (enemy.model) {
+                this.scene.remove(enemy.model);
+            }
+        });
+        this.enemies = [];
         
         // 全ての画面を非表示
         this.hideAllScreens();
         
+        // ゲーム画面を表示
+        this.screens.game.classList.add('active');
+        
+        // プレイヤーを初期化（明示的に安全な位置に配置）
+        this.player = new Player(this);
+        
+        // 安全な初期位置に明示的に配置（地面から確実に浮いた位置）
+        const safeStartPosition = { x: 0, y: 1.5, z: 0 };
+        this.player.position = { ...safeStartPosition };
+        this.player.velocity = { x: 0, y: 0, z: 0 };
+        this.player.rotation = { x: 0, y: 0, z: 0 };
+        this.player.onGround = true;
+        this.player.isJumping = false;
+        this.player.isFalling = false;
+        
+        // プレイヤーのモデルも正しい位置に設定
+        if (this.player.model) {
+            this.player.model.position.set(
+                safeStartPosition.x,
+                safeStartPosition.y,
+                safeStartPosition.z
+            );
+        }
+        
+        console.log(`プレイヤーを初期位置(${safeStartPosition.x}, ${safeStartPosition.y}, ${safeStartPosition.z})に配置しました`);
+        
+        // カメラの初期設定
+        if (this.camera) {
+            this.camera.position.set(
+                safeStartPosition.x, 
+                safeStartPosition.y + 1.0, // 目線の高さ
+                safeStartPosition.z
+            );
+            
+            // カメラの回転順序を設定（重要）
+            this.camera.rotation.order = 'YXZ';
+            
+            // カメラの向きを明示的に設定
+            this.camera.rotation.x = 0; // 水平を向く
+            this.camera.rotation.y = 0; // 前方を向く
+        }
+        
+        // プレイヤーの操作を確実に有効化
+        setTimeout(() => {
+            if (this.player) {
+                this.player.enableControls();
+                this.player.updateCamera(); // カメラ位置を更新
+                console.log("プレイヤー操作を有効化しました");
+            }
+        }, 200);
+        
         // ステージマネージャーを初期化して最初のステージを開始
         this.stageManager.currentStageIndex = -1;
-        this.stageManager.nextStage();
         
-        // ゲーム開始時にポインターロックを有効化
-        document.getElementById('game-canvas').requestPointerLock();
+        // マウスをゲームキャンバスに関連付け
+        this.canvas = document.getElementById('game-canvas');
+        
+        // 遅延させてから次のステージへ進む（カメラとプレイヤーの設定を確実にするため）
+        setTimeout(() => {
+            // プレイヤーの位置を再確認
+            console.log("ゲーム開始時のプレイヤー位置:", this.player.position);
+            
+            // ポインターロックを有効化（ゲームコントロールのため）
+            this.setupPointerLock();
+            
+            // ステージ開始
+            this.stageManager.nextStage();
+            
+            console.log("ゲームが正常に開始されました");
+        }, 500); // 少し長めの遅延で安定性を確保
+    }
+    
+    /**
+     * ポインターロックの設定（マウス操作のため）
+     */
+    setupPointerLock() {
+        if (!this.canvas) {
+            this.canvas = document.getElementById('game-canvas');
+        }
+        
+        if (this.canvas && this.player) {
+            // ポインターロック機能を確保
+            this.canvas.requestPointerLock = this.canvas.requestPointerLock || 
+                                           this.canvas.mozRequestPointerLock || 
+                                           this.canvas.webkitRequestPointerLock;
+            
+            // ポインターロックを要求するためのイベントリスナー
+            const requestLock = () => {
+                try {
+                    this.canvas.requestPointerLock();
+                    console.log("ポインターロックを要求しました");
+                } catch (e) {
+                    console.warn("ポインターロックの要求に失敗しました:", e);
+                }
+            };
+            
+            // クリックでポインターロックを要求（一度だけ実行）
+            this.canvas.addEventListener('click', requestLock, { once: true });
+            
+            // 自動的にロック要求（ユーザーエクスペリエンス向上のため）
+            setTimeout(() => {
+                try {
+                    this.canvas.click(); // 自動クリックでポインターロックを開始
+                } catch (e) {
+                    console.warn("自動ポインターロック要求に失敗:", e);
+                }
+            }, 100);
+            
+            console.log("ポインターロック機能をセットアップしました");
+            
+            // ロックとカメラの位置が確実に同期されるよう、再度設定を試行
+            setTimeout(() => {
+                if (!document.pointerLockElement && this.isActive) {
+                    try {
+                        this.canvas.click(); // 2回目の試行
+                    } catch (e) {
+                        console.warn("ポインターロックの再試行に失敗:", e);
+                    }
+                    
+                    // プレイヤーの位置とカメラを再同期
+                    if (this.player) {
+                        this.player.updateCamera();
+                    }
+                }
+            }, 500);
+        }
     }
     
     /**
@@ -2220,6 +2411,9 @@ class Game {
         if (this.stageManager) {
             this.stageManager.update();
         }
+        
+        // ミニマップの更新
+        this.updateMinimap();
     }
     
     /**
@@ -2255,6 +2449,9 @@ class Game {
         
         // 3Dモデルの作成
         this.createEnemyModel(enemy);
+        
+        // ミニマップに敵のマーカーを追加
+        this.addEnemyMarker(enemy);
     }
     
     /**
@@ -2342,6 +2539,9 @@ class Game {
             
             // 敵リストから削除
             this.enemies.splice(index, 1);
+            
+            // ミニマップから敵のマーカーを削除
+            this.removeEnemyMarker(enemy);
         }
     }
     
@@ -2492,6 +2692,131 @@ class Game {
         // 画面を表示
         this.hideAllScreens();
         this.screens.victory.classList.add('active');
+    }
+    
+    /**
+     * ミニマップの初期化
+     */
+    initMinimap() {
+        // ミニマップのコンテナ要素を取得
+        this.minimapElements.container = document.getElementById('minimap-container');
+        this.minimapElements.map = document.getElementById('minimap');
+        
+        // ミニマップ内にプレイヤーマーカーを作成
+        if (!this.minimapElements.playerMarker) {
+            this.minimapElements.playerMarker = document.createElement('div');
+            this.minimapElements.playerMarker.className = 'minimap-marker player-marker';
+            this.minimapElements.map.appendChild(this.minimapElements.playerMarker);
+            
+            // プレイヤーマーカーを中央に配置
+            const mapWidth = this.minimapElements.map.offsetWidth;
+            const mapHeight = this.minimapElements.map.offsetHeight;
+            this.minimapElements.playerMarker.style.left = `${mapWidth / 2}px`;
+            this.minimapElements.playerMarker.style.top = `${mapHeight / 2}px`;
+            
+            console.log(`プレイヤーマーカーを初期化しました（位置: ${mapWidth / 2}, ${mapHeight / 2}）`);
+        }
+        
+        // 敵マーカーと障害物マーカーを初期化
+        this.minimapElements.enemyMarkers = [];
+        this.minimapElements.obstacleMarkers = [];
+    }
+    
+    /**
+     * ミニマップの更新
+     */
+    updateMinimap() {
+        if (!this.player || !this.minimapElements.map || !this.minimapElements.playerMarker) return;
+        
+        const mapWidth = this.minimapElements.map.offsetWidth;
+        const mapHeight = this.minimapElements.map.offsetHeight;
+        const centerX = mapWidth / 2;
+        const centerY = mapHeight / 2;
+        
+        // プレイヤーをミニマップの中央に固定
+        this.minimapElements.playerMarker.style.left = `${centerX}px`;
+        this.minimapElements.playerMarker.style.top = `${centerY}px`;
+        
+        // 敵の位置をプレイヤーを基準にして更新
+        this.enemies.forEach((enemy, index) => {
+            if (!this.minimapElements.enemyMarkers[index]) {
+                // 新しい敵マーカーを作成
+                const enemyMarker = document.createElement('div');
+                enemyMarker.className = 'minimap-marker enemy-marker';
+                this.minimapElements.map.appendChild(enemyMarker);
+                this.minimapElements.enemyMarkers[index] = enemyMarker;
+            }
+            
+            // 敵とプレイヤーの相対位置を計算
+            const relX = (enemy.position.x - this.player.position.x) * this.minimapScale;
+            const relZ = (enemy.position.z - this.player.position.z) * this.minimapScale;
+            
+            const enemyMarker = this.minimapElements.enemyMarkers[index];
+            enemyMarker.style.left = `${centerX + relX}px`;
+            enemyMarker.style.top = `${centerY - relZ}px`; // Z軸は反転
+            
+            // ミニマップの範囲内か確認
+            const isInMap = 
+                Math.abs(relX) < mapWidth/2 - 5 && 
+                Math.abs(relZ) < mapHeight/2 - 5;
+                
+            // 範囲外なら非表示
+            enemyMarker.style.display = isInMap ? 'block' : 'none';
+        });
+        
+        // 障害物の位置をプレイヤーを基準にして更新
+        this.gameObjects.environment.forEach((obj, index) => {
+            if (obj.name === 'obstacle' || obj.name === 'wall' || obj.name === 'furniture') {
+                if (!this.minimapElements.obstacleMarkers[index]) {
+                    // 新しい障害物マーカーを作成
+                    const obstacleMarker = document.createElement('div');
+                    obstacleMarker.className = 'minimap-marker obstacle-marker';
+                    this.minimapElements.map.appendChild(obstacleMarker);
+                    this.minimapElements.obstacleMarkers[index] = obstacleMarker;
+                }
+                
+                // 障害物とプレイヤーの相対位置を計算
+                const objPos = obj.position;
+                const relX = (objPos.x - this.player.position.x) * this.minimapScale;
+                const relZ = (objPos.z - this.player.position.z) * this.minimapScale;
+                
+                const obstacleMarker = this.minimapElements.obstacleMarkers[index];
+                obstacleMarker.style.left = `${centerX + relX}px`;
+                obstacleMarker.style.top = `${centerY - relZ}px`; // Z軸は反転
+                
+                // ミニマップの範囲内か確認
+                const isInMap = 
+                    Math.abs(relX) < mapWidth/2 - 2 && 
+                    Math.abs(relZ) < mapHeight/2 - 2;
+                    
+                // 範囲外なら非表示
+                obstacleMarker.style.display = isInMap ? 'block' : 'none';
+            }
+        });
+    }
+    
+    /**
+     * 敵のマーカーをミニマップに追加
+     */
+    addEnemyMarker(enemy) {
+        const enemyMarker = document.createElement('div');
+        enemyMarker.className = 'minimap-marker enemy-marker';
+        this.minimapElements.map.appendChild(enemyMarker);
+        this.minimapElements.enemyMarkers.push(enemyMarker);
+    }
+    
+    /**
+     * 敵のマーカーをミニマップから削除
+     */
+    removeEnemyMarker(enemy) {
+        const index = this.enemies.indexOf(enemy);
+        if (index !== -1) {
+            const enemyMarker = this.minimapElements.enemyMarkers[index];
+            if (enemyMarker) {
+                this.minimapElements.map.removeChild(enemyMarker);
+                this.minimapElements.enemyMarkers.splice(index, 1);
+            }
+        }
     }
 }
 

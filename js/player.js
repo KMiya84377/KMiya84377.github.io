@@ -1,340 +1,341 @@
 /**
  * プレイヤークラス
- * プレイヤーの動作や状態を管理します
  */
 class Player {
     constructor(game) {
         this.game = game;
-        this.health = GameConfig.player.health;
-        this.maxHealth = GameConfig.player.health;
-        this.ammo = GameConfig.player.maxAmmo;
-        this.maxAmmo = GameConfig.player.maxAmmo;
-        this.score = 0;
-        this.isReloading = false;
-        this.canShoot = true;
-        this.specialAbilityReady = true;
-        this.specialAbilityActive = false;
-        this.specialAbilityMeter = 0;
         
-        // 特殊能力のタイプ: "attack"(攻撃強化) または "buff"(バフ/防御強化)
-        this.specialAbilityType = "attack";
-        
-        // 位置と方向
-        this.position = { x: 0, y: 0, z: 0 };
+        // 初期位置
+        this.position = { x: 0, y: 1.0, z: 0 }; // 原点近くに初期化してミニマップ表示を修正
         this.rotation = { x: 0, y: 0, z: 0 };
         this.velocity = { x: 0, y: 0, z: 0 };
-        this.onGround = true;
         
-        // 3Dモデル関連
+        // プレイヤーの状態
+        this.health = 100;
+        this.maxHealth = 100;
+        this.score = 0;
+        this.level = 1;
+        
+        // 移動関連パラメータ - 調整済み
+        this.moveSpeed = 0.15;           // 移動速度
+        this.rotationSpeed = 0.003;      // 回転速度
+        this.jumpForce = 0.4;            // ジャンプ力
+        this.gravity = 0.015;            // 重力加速度
+        this.groundFriction = 0.92;      // 地面の摩擦
+        this.airFriction = 0.98;         // 空中の摩擦
+        
+        // 物理演算用状態
+        this.onGround = true;            // 地面にいるかどうか
+        this.isJumping = false;          // ジャンプ中かどうか
+        this.isFalling = false;          // 落下中かどうか
+        this.collisionRadius = 0.5;      // 衝突判定用の半径
+        this.height = 1.8;               // プレイヤーの身長
+        
+        // 入力状態
+        this.keys = {};                 // キー入力状態
+        this.mouseMovement = { x: 0, y: 0 }; // マウス移動量
+        this.mouseSensitivity = 2.0;    // マウス感度
+        this.controlsEnabled = true;     // コントロール有効フラグ
+        
+        // 3Dモデル
         this.model = null;
-        this.weaponModel = null;
-        this.muzzleFlash = null;
-        this.specialEffects = [];
+        this.loadModel();
         
-        // キー状態を記録するオブジェクト
-        this.keys = {
-            forward: false,
-            backward: false,
-            left: false,
-            right: false,
-            jump: false,
-            reload: false,
-            special: false
-        };
+        // スキルと能力
+        this.skills = [];
+        this.activeSkill = null;
+        this.skillCooldown = 0;
         
-        // 3Dモデルの初期化
-        this.initModel();
+        // プレイヤーの武器
+        this.weapons = [];
+        this.currentWeapon = null;
+        this.initWeapons();
         
-        // 入力設定
-        this.setupControls();
+        // 入力イベントリスナー
+        this.setupEventListeners();
+        
+        // 操作可能状態の監視
+        this.setupControlsStateMonitor();
+        
+        console.log('プレイヤーを初期化しました');
     }
     
     /**
-     * 3Dモデルの初期化
+     * プレイヤーモデルの読み込み
      */
-    initModel() {
-        // プレイヤーの視点が一人称なので、自分自身のモデルは基本的に表示しない
+    loadModel() {
+        // シンプルなプレーヤーモデル（暫定的にボックス）
+        const geometry = new THREE.BoxGeometry(0.6, this.height, 0.6);
+        const material = new THREE.MeshStandardMaterial({ color: 0x0000ff, opacity: 0.0, transparent: true });
         
-        // 武器モデル
-        const weaponGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.5);
-        const weaponMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
-        this.weaponModel = new THREE.Mesh(weaponGeometry, weaponMaterial);
+        this.model = new THREE.Mesh(geometry, material);
+        this.model.castShadow = true;
+        this.model.receiveShadow = true;
+        this.model.name = "player";
         
-        // 武器の位置を調整（画面右下あたり）
-        this.weaponModel.position.set(0.3, -0.2, -0.5);
+        // 開始位置に設定
+        this.model.position.set(this.position.x, this.position.y, this.position.z);
         
-        // カメラの子要素として武器を追加
-        this.game.camera.add(this.weaponModel);
-        
-        // マズルフラッシュ（射撃時のエフェクト）の準備
-        const flashGeometry = new THREE.SphereGeometry(0.05, 8, 8);
-        const flashMaterial = new THREE.MeshBasicMaterial({ 
-            color: 0xffff00,
-            transparent: true,
-            opacity: 0.8
-        });
-        this.muzzleFlash = new THREE.Mesh(flashGeometry, flashMaterial);
-        this.muzzleFlash.position.set(0, 0, -0.3);
-        this.muzzleFlash.visible = false;
-        this.weaponModel.add(this.muzzleFlash);
-        
-        // 特殊能力エフェクト
-        const specialEffectGeometry = new THREE.SphereGeometry(0.5, 16, 16);
-        const specialEffectMaterial = new THREE.MeshBasicMaterial({
-            color: 0x00ffff,
-            transparent: true,
-            opacity: 0.5
-        });
-        const specialEffect = new THREE.Mesh(specialEffectGeometry, specialEffectMaterial);
-        specialEffect.visible = false;
-        this.specialEffects.push(specialEffect);
-        this.game.camera.add(specialEffect);
+        // シーンに追加
+        this.game.scene.add(this.model);
     }
     
     /**
-     * キーボードとマウスの入力制御をセットアップ
+     * 武器の初期化
      */
-    setupControls() {
-        // キーの押下状態を管理
+    initWeapons() {
+        // 初期武器を追加
+        this.weapons.push(new Weapon(this.game, 'basic'));
+        
+        // 現在の武器を設定
+        this.currentWeapon = this.weapons[0];
+    }
+    
+    /**
+     * 入力イベントリスナーの設定
+     */
+    setupEventListeners() {
+        // キー入力のイベントリスナー
         document.addEventListener('keydown', (event) => {
-            switch (event.key.toLowerCase()) {
-                case 'w':
-                case 'arrowup':
-                    this.keys.forward = true;
-                    break;
-                case 's':
-                case 'arrowdown':
-                    this.keys.backward = true;
-                    break;
-                case 'a':
-                case 'arrowleft':
-                    this.keys.left = true;
-                    break;
-                case 'd':
-                case 'arrowright':
-                    this.keys.right = true;
-                    break;
-                case ' ':
-                    this.keys.jump = true;
-                    break;
-                case 'r':
-                    this.reload();
-                    break;
-                case 'q': // Qキーでも特殊能力が発動できるようにする
-                case 'e': // Eキーでも特殊能力が発動できるようにする
-                case 'shift': // シフトキーでも特殊能力が発動できるようにする
-                    this.useSpecialAbility();
-                    break;
+            if (!this.controlsEnabled) return;
+            this.keys[event.code] = true;
+            
+            // ジャンプ処理（スペースキー）
+            if (event.code === 'Space' && this.onGround && !this.isJumping) {
+                this.startJump();
+                this.game.playSound('jump');
             }
-        });
-        
-        // キーを離した時の処理を追加
-        document.addEventListener('keyup', (event) => {
-            switch (event.key.toLowerCase()) {
-                case 'w':
-                case 'arrowup':
-                    this.keys.forward = false;
-                    break;
-                case 's':
-                case 'arrowdown':
-                    this.keys.backward = false;
-                    break;
-                case 'a':
-                case 'arrowleft':
-                    this.keys.left = false;
-                    break;
-                case 'd':
-                case 'arrowright':
-                    this.keys.right = false;
-                    break;
-                case ' ':
-                    this.keys.jump = false;
-                    break;
-            }
-        });
-        
-        // スペースキーでの特殊能力発動を別のイベントハンドラで監視
-        document.addEventListener('keypress', (event) => {
-            if (event.key === ' ' && this.game.isActive) {
-                this.useSpecialAbility();
-            }
-        });
-        
-        // 特殊能力切り替えボタンのイベントリスナー
-        const switchButton = document.getElementById('switch-ability-button');
-        if (switchButton) {
-            switchButton.addEventListener('click', () => {
-                this.switchSpecialAbilityType();
-            });
-        }
-        
-        // マウス動作
-        document.addEventListener('mousemove', (event) => {
-            if (this.game.isActive) {
-                // マウス移動で視点を変える（FPSスタイル）
-                const sensitivity = 0.002;
-                this.rotation.y -= event.movementX * sensitivity;
-                this.rotation.x -= event.movementY * sensitivity;
-                
-                // 視点の上下制限（真上や真下を超えないように）
-                this.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.rotation.x));
-            }
-        });
-        
-        // 射撃処理
-        document.addEventListener('mousedown', (event) => {
-            if (event.button === 0 && this.game.isActive) { // 左クリック
+            
+            // 武器発射（マウス左クリックまたはCtrl）
+            if (event.code === 'ControlLeft') {
                 this.shoot();
             }
-        });
-        
-        // ポインターロック（マウスカーソルをゲーム画面内に固定）
-        document.getElementById('game-canvas').addEventListener('click', () => {
-            if (this.game.isActive) {
-                document.getElementById('game-canvas').requestPointerLock();
+            
+            // 武器切り替え
+            if (event.code === 'KeyQ') {
+                this.switchWeapon();
+            }
+            
+            // スキル使用（右クリックまたはE）
+            if (event.code === 'KeyE' && this.activeSkill && this.skillCooldown <= 0) {
+                this.useSkill();
             }
         });
-    }
-    
-    /**
-     * 移動処理
-     */
-    move() {
-        // 移動方向を計算
-        const moveSpeed = GameConfig.player.moveSpeed;
-        // 特殊能力「バフ」発動中は移動速度アップ
-        const speedMultiplier = (this.specialAbilityActive && this.specialAbilityType === "buff") ? 1.5 : 1;
         
-        let moveVector = { x: 0, y: 0, z: 0 };
+        document.addEventListener('keyup', (event) => {
+            this.keys[event.code] = false;
+        });
         
-        // 現在向いている方向を基準に前後左右の移動を計算（修正済み）
-        if (this.keys.forward) {  // Wキー: 前進
-            moveVector.x += Math.sin(this.rotation.y) * moveSpeed * speedMultiplier;
-            moveVector.z += Math.cos(this.rotation.y) * moveSpeed * speedMultiplier;
-        }
-        
-        if (this.keys.backward) { // Sキー: 後退
-            moveVector.x -= Math.sin(this.rotation.y) * moveSpeed * speedMultiplier;
-            moveVector.z -= Math.cos(this.rotation.y) * moveSpeed * speedMultiplier;
-        }
-        
-        if (this.keys.left) {     // Aキー: 左へ移動
-            moveVector.x -= Math.cos(this.rotation.y) * moveSpeed * speedMultiplier;
-            moveVector.z += Math.sin(this.rotation.y) * moveSpeed * speedMultiplier;
-        }
-        
-        if (this.keys.right) {    // Dキー: 右へ移動
-            moveVector.x += Math.cos(this.rotation.y) * moveSpeed * speedMultiplier;
-            moveVector.z -= Math.sin(this.rotation.y) * moveSpeed * speedMultiplier;
-        }
-        
-        // 移動量を適用
-        this.position.x += moveVector.x;
-        this.position.z += moveVector.z;
-        
-        // カメラの位置更新を追加
-        this.game.camera.position.set(this.position.x, this.position.y + 2, this.position.z);
-        
-        // 壁との衝突判定（簡易版）
-        this.checkCollision();
-        
-        // ジャンプと重力
-        if (this.keys.jump && this.onGround) {
-            this.velocity.y = GameConfig.player.jumpForce;
-            this.onGround = false;
-            // ジャンプ音の再生
-            this.game.playSound('jump');
-        }
-        
-        // 重力を適用
-        if (!this.onGround) {
-            this.velocity.y -= GameConfig.player.gravity;
-        }
-        
-        this.position.y += this.velocity.y;
-        
-        // 地面との衝突判定
-        if (this.position.y <= 0) {
-            this.position.y = 0;
-            this.velocity.y = 0;
-            this.onGround = true;
-        }
-    }
-    
-    /**
-     * 壁や障害物との衝突判定
-     */
-    checkCollision() {
-        // プレイヤーの円柱状のバウンディングボックス
-        const playerRadius = 0.5; // プレイヤーの横幅（半径）
-        
-        // 部屋の境界チェック
-        const roomSize = 24; // 部屋の半分のサイズ（余裕を持たせる）
-        
-        // X座標の制限
-        if (this.position.x > roomSize) this.position.x = roomSize;
-        if (this.position.x < -roomSize) this.position.x = -roomSize;
-        
-        // Z座標の制限
-        if (this.position.z > roomSize) this.position.z = roomSize;
-        if (this.position.z < -roomSize) this.position.z = -roomSize;
-        
-        // 環境内の障害物との衝突チェック
-        const obstacles = this.game.gameObjects.environment.filter(obj => obj.name === "obstacle" || obj.name === "furniture" || obj.name === "wall");
-        
-        // 前のフレームの位置を記憶（衝突時に戻すため）
-        const previousPosition = { x: this.position.x, y: this.position.y, z: this.position.z };
-        
-        for (const obstacle of obstacles) {
-            if (!obstacle.geometry) continue; // ジオメトリがない場合はスキップ
+        // マウス移動のイベントリスナー
+        document.addEventListener('mousemove', (event) => {
+            if (!this.controlsEnabled) return;
             
-            // 障害物のバウンディングボックスを取得
-            let box;
-            if (!obstacle.geometry.boundingBox) {
-                obstacle.geometry.computeBoundingBox();
+            // ポインターロックが有効な時だけ処理
+            if (document.pointerLockElement === this.game.canvas ||
+                document.mozPointerLockElement === this.game.canvas) {
+                this.mouseMovement.x = event.movementX || 0;
+                this.mouseMovement.y = event.movementY || 0;
+                
+                // カメラの回転
+                this.rotateCamera();
             }
-            box = obstacle.geometry.boundingBox.clone();
+        });
+        
+        // マウスクリックイベント
+        document.addEventListener('mousedown', (event) => {
+            if (!this.controlsEnabled) return;
             
-            // ワールド座標系に変換
-            box.applyMatrix4(obstacle.matrixWorld);
+            // 左クリックで射撃
+            if (event.button === 0) {
+                this.shoot();
+            }
             
-            // プレイヤーと障害物の距離を計算
-            const obstaclePos = new THREE.Vector3();
-            obstacle.getWorldPosition(obstaclePos);
-            
-            // プレイヤーから障害物への方向ベクトル
-            const dx = obstaclePos.x - this.position.x;
-            const dz = obstaclePos.z - this.position.z;
-            
-            // 距離の2乗（ルート計算を避けるため）
-            const distanceSquared = dx * dx + dz * dz;
-            
-            // 衝突判定の半径（障害物のサイズに応じて調整）
-            let collisionRadius = playerRadius;
-            
-            // バウンディングボックスから近似する衝突半径
-            const boxSize = new THREE.Vector3();
-            box.getSize(boxSize);
-            const obstacleRadius = Math.max(boxSize.x, boxSize.z) / 2;
-            
-            // 衝突判定
-            const minDistance = collisionRadius + obstacleRadius;
-            if (distanceSquared < minDistance * minDistance) {
-                // 衝突しているので位置を調整
-                // 衝突した方向と逆に少し押し戻す
-                if (distanceSquared > 0) {
-                    const angle = Math.atan2(dx, dz);
-                    const pushDistance = minDistance - Math.sqrt(distanceSquared) + 0.1; // 少し余分に押し戻す
-                    
-                    this.position.x = previousPosition.x - Math.sin(angle) * pushDistance;
-                    this.position.z = previousPosition.z - Math.cos(angle) * pushDistance;
-                } else {
-                    // 完全に重なっている場合はランダムな方向に押し出す
-                    const randomAngle = Math.random() * Math.PI * 2;
-                    this.position.x = obstaclePos.x + Math.sin(randomAngle) * minDistance;
-                    this.position.z = obstaclePos.z + Math.cos(randomAngle) * minDistance;
+            // 右クリックでスキル使用
+            if (event.button === 2 && this.activeSkill && this.skillCooldown <= 0) {
+                this.useSkill();
+            }
+        });
+        
+        // コンテキストメニューの無効化（右クリックメニュー対策）
+        document.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+        });
+        
+        // ポインターロックの変更を検出
+        document.addEventListener('pointerlockchange', () => {
+            // ポインターロックの状態に応じてコントロールの有効/無効を切り替え
+            if (document.pointerLockElement === this.game.canvas ||
+                document.mozPointerLockElement === this.game.canvas) {
+                console.log('ポインターロックが有効になりました');
+                this.enableControls();
+            } else {
+                console.log('ポインターロックが解除されました');
+                // ゲーム中であれば、一時停止メニューを表示
+                if (this.game.isPlaying) {
+                    this.game.pause();
                 }
             }
+        });
+        
+        // ポインターロックのエラー処理
+        document.addEventListener('pointerlockerror', (event) => {
+            console.error('ポインターロックの取得に失敗しました:', event);
+            // エラー回復処理を行う（必要に応じて）
+            setTimeout(() => {
+                try {
+                    this.game.canvas.requestPointerLock();
+                } catch (e) {
+                    console.warn('ポインターロックの再試行に失敗しました:', e);
+                }
+            }, 1000);
+        });
+        
+        // ゲームキャンバスクリック時に自動的にポインターロックを要求
+        this.game.canvas.addEventListener('click', () => {
+            if (!document.pointerLockElement && this.game.isPlaying) {
+                try {
+                    this.game.canvas.requestPointerLock();
+                } catch (e) {
+                    console.warn('ポインターロックの要求に失敗しました:', e);
+                }
+            }
+        });
+        
+        // プレイヤー位置がリセットされたときのイベント処理
+        document.addEventListener('playerPositionReset', () => {
+            console.log('プレイヤー位置がリセットされました - 状態の同期を行います');
+            
+            // モデルの位置をプレイヤー位置と同期
+            if (this.model) {
+                this.model.position.set(this.position.x, this.position.y, this.position.z);
+            }
+            
+            // カメラの位置も更新
+            this.updateCamera();
+        });
+    }
+    
+    /**
+     * 操作可能状態を監視するセットアップ
+     */
+    setupControlsStateMonitor() {
+        // 操作不能になった時の自動復旧タイマー
+        setInterval(() => {
+            if (this.game.isPlaying && !this.controlsEnabled) {
+                console.log('自動コントロール復旧を試みます');
+                this.enableControls();
+            }
+            
+            // カメラとプレイヤーの位置同期をチェック
+            this.validateCameraPosition();
+        }, 3000);
+    }
+    
+    /**
+     * コントロールの有効化
+     */
+    enableControls() {
+        this.controlsEnabled = true;
+        console.log('プレイヤーコントロールが有効になりました');
+        
+        // キー状態をリセット（押しっぱなし防止）
+        this.keys = {};
+    }
+    
+    /**
+     * コントロールの無効化
+     */
+    disableControls() {
+        this.controlsEnabled = false;
+        console.log('プレイヤーコントロールが無効になりました');
+        
+        // キー状態をリセット
+        this.keys = {};
+    }
+    
+    /**
+     * カメラの回転処理
+     */
+    rotateCamera() {
+        if (!this.controlsEnabled || !this.game.camera) return;
+        
+        // X軸回転（上下）- 制限つき
+        const pitchChange = this.mouseMovement.y * this.rotationSpeed * this.mouseSensitivity;
+        this.rotation.x -= pitchChange; 
+        
+        // 上下の回転を制限（-85度〜85度）
+        const maxPitch = Math.PI * 0.45;
+        this.rotation.x = Math.max(-maxPitch, Math.min(maxPitch, this.rotation.x));
+        
+        // Y軸回転（左右）
+        const yawChange = this.mouseMovement.x * this.rotationSpeed * this.mouseSensitivity;
+        this.rotation.y -= yawChange;
+        
+        // 回転を適用
+        this.updateCamera();
+        
+        // マウス移動量をリセット
+        this.mouseMovement.x = 0;
+        this.mouseMovement.y = 0;
+    }
+    
+    /**
+     * カメラ位置の更新
+     */
+    updateCamera() {
+        if (!this.game.camera) return;
+        
+        // カメラ位置を更新（目の高さ分上にオフセット）
+        const eyeHeight = 1.0; // 目の高さ
+        this.game.camera.position.set(
+            this.position.x,
+            this.position.y + eyeHeight,
+            this.position.z
+        );
+        
+        // カメラの回転を更新
+        this.game.camera.rotation.order = 'YXZ'; // 回転順序を設定（重要）
+        this.game.camera.rotation.x = this.rotation.x; // X軸回転（上下）
+        this.game.camera.rotation.y = this.rotation.y; // Y軸回転（左右）
+        
+        // 現在のカメラ向きベクトルを計算（デバッグ用）
+        //const direction = new THREE.Vector3(0, 0, -1);
+        //direction.applyQuaternion(this.game.camera.quaternion);
+        //console.log('カメラ方向:', direction);
+    }
+    
+    /**
+     * カメラ位置が正しいか検証
+     */
+    validateCameraPosition() {
+        if (!this.game.camera) return;
+        
+        const eyeHeight = 1.0;
+        const expectedCameraY = this.position.y + eyeHeight;
+        const cameraDiffY = Math.abs(this.game.camera.position.y - expectedCameraY);
+        
+        // カメラとプレイヤーの位置の差が大きい場合は修正
+        if (cameraDiffY > 0.2 ||
+            Math.abs(this.game.camera.position.x - this.position.x) > 0.2 ||
+            Math.abs(this.game.camera.position.z - this.position.z) > 0.2) {
+            
+            console.log('カメラ位置を修正します');
+            this.updateCamera();
+        }
+    }
+    
+    /**
+     * ジャンプの開始
+     */
+    startJump() {
+        if (this.onGround) {
+            this.velocity.y = this.jumpForce;
+            this.isJumping = true;
+            this.onGround = false;
+            this.isFalling = false;
+            
+            // ジャンプ効果音（任意）
+            // this.game.playSound('jump');
         }
     }
     
@@ -342,409 +343,354 @@ class Player {
      * 射撃処理
      */
     shoot() {
-        if (!this.canShoot || this.isReloading || this.ammo <= 0) return;
+        if (this.currentWeapon && !this.game.isPaused) {
+            this.currentWeapon.fire(this.position, this.getForwardVector());
+        }
+    }
+    
+    /**
+     * 武器を切り替える
+     */
+    switchWeapon() {
+        if (this.weapons.length <= 1) return;
         
-        this.canShoot = false;
-        this.ammo--;
+        const currentIndex = this.weapons.indexOf(this.currentWeapon);
+        const nextIndex = (currentIndex + 1) % this.weapons.length;
         
-        // 弾の発射音を再生
-        this.game.playSound('shoot');
+        this.currentWeapon = this.weapons[nextIndex];
+        console.log(`武器を切り替え: ${this.currentWeapon.name}`);
         
-        // マズルフラッシュの表示
-        this.showMuzzleFlash();
+        // 武器切り替え効果音
+        this.game.playSound('weapon_switch');
         
-        // 弾道エフェクトの作成
-        this.createBulletTrail();
-        
-        // レイキャスト（弾道計算）して敵との当たり判定
-        const hit = this.game.raycast(this.position, this.rotation, GameConfig.player.weaponRange);
-        
-        if (hit && hit.enemy) {
-            // 敵に当たった場合のダメージ計算
-            const damage = this.specialAbilityActive ? 
-                GameConfig.player.damage * 2 : GameConfig.player.damage;
+        // UI更新
+        this.game.updateWeaponUI(this.currentWeapon);
+    }
+    
+    /**
+     * スキルを使用
+     */
+    useSkill() {
+        if (this.activeSkill && this.skillCooldown <= 0) {
+            this.activeSkill.activate();
+            this.skillCooldown = this.activeSkill.cooldown;
             
-            hit.enemy.takeDamage(damage, this);
+            // スキル使用効果音
+            this.game.playSound('skill_activate');
             
-            // ヒット効果音
-            this.game.playSound('hit');
+            // UI更新
+            this.game.updateSkillUI(this.activeSkill, this.skillCooldown);
+        }
+    }
+    
+    /**
+     * 前方ベクトルの取得（射撃方向）
+     */
+    getForwardVector() {
+        // カメラの向いている方向を取得
+        const forward = new THREE.Vector3(0, 0, -1);  // Z軸の負の方向が前方
+        
+        // カメラの回転を適用
+        const quaternion = new THREE.Quaternion();
+        quaternion.setFromEuler(new THREE.Euler(this.rotation.x, this.rotation.y, 0, 'YXZ'));
+        forward.applyQuaternion(quaternion);
+        
+        return forward.normalize();
+    }
+    
+    /**
+     * 移動処理
+     */
+    move() {
+        if (!this.controlsEnabled) return;
+        
+        // プレイヤーの向きベクトル
+        const forward = new THREE.Vector3(0, 0, -1);
+        const right = new THREE.Vector3(1, 0, 0);
+        
+        // Y軸回転のみ適用（上下の視点変更を移動方向に影響させない）
+        const quaternionY = new THREE.Quaternion();
+        quaternionY.setFromAxisAngle(new THREE.Vector3(0, 1, 0), this.rotation.y);
+        
+        forward.applyQuaternion(quaternionY);
+        right.applyQuaternion(quaternionY);
+        
+        // 移動ベクトル
+        let moveX = 0;
+        let moveZ = 0;
+        
+        // WASDキーで移動
+        if (this.keys['KeyW']) {
+            moveX += forward.x * this.moveSpeed;
+            moveZ += forward.z * this.moveSpeed;
+        }
+        if (this.keys['KeyS']) {
+            moveX -= forward.x * this.moveSpeed;
+            moveZ -= forward.z * this.moveSpeed;
+        }
+        if (this.keys['KeyA']) {
+            moveX -= right.x * this.moveSpeed;
+            moveZ -= right.z * this.moveSpeed;
+        }
+        if (this.keys['KeyD']) {
+            moveX += right.x * this.moveSpeed;
+            moveZ += right.z * this.moveSpeed;
+        }
+        
+        // 斜め移動の速度を正規化
+        if (moveX !== 0 && moveZ !== 0) {
+            const length = Math.sqrt(moveX * moveX + moveZ * moveZ);
+            moveX /= length;
+            moveZ /= length;
+            moveX *= this.moveSpeed;
+            moveZ *= this.moveSpeed;
+        }
+        
+        // 移動速度に加算
+        this.velocity.x += moveX;
+        this.velocity.z += moveZ;
+        
+        // 移動処理を行う
+        this.updatePosition();
+    }
+    
+    /**
+     * 位置の更新と物理演算
+     */
+    updatePosition() {
+        // 重力の適用
+        if (!this.onGround) {
+            this.velocity.y -= this.gravity;
             
-            // ヒットエフェクトを表示
-            this.createHitEffect(hit.point);
-            
-            console.log(`敵に命中! ダメージ: ${damage}`);
+            // 落下状態の判定
+            if (this.velocity.y < 0) {
+                this.isFalling = true;
+                this.isJumping = false;
+            }
+        }
+        
+        // 摩擦の適用
+        const friction = this.onGround ? this.groundFriction : this.airFriction;
+        this.velocity.x *= friction;
+        this.velocity.z *= friction;
+        
+        // 微小な速度をゼロにする（浮動小数点の誤差対策）
+        if (Math.abs(this.velocity.x) < 0.001) this.velocity.x = 0;
+        if (Math.abs(this.velocity.z) < 0.001) this.velocity.z = 0;
+        
+        // 位置の更新
+        const newPosition = {
+            x: this.position.x + this.velocity.x,
+            y: this.position.y + this.velocity.y,
+            z: this.position.z + this.velocity.z
+        };
+        
+        // 衝突判定（下方向のみ簡易チェック）
+        this.checkGroundCollision(newPosition);
+        
+        // 障害物との衝突判定
+        const collision = this.checkObstacleCollision(newPosition);
+        
+        // 衝突がなければ移動
+        if (!collision) {
+            this.position = newPosition;
         } else {
-            console.log('射撃: 外れ');
-        }
-        
-        // 射撃後のディレイを設定
-        setTimeout(() => {
-            this.canShoot = true;
-        }, GameConfig.player.shootDelay);
-        
-        // 弾切れチェック
-        if (this.ammo <= 0) {
-            this.reload();
-        }
-        
-        // HUDの更新
-        this.updateHUD();
-    }
-    
-    /**
-     * 弾道エフェクトの作成
-     */
-    createBulletTrail() {
-        // 弾道の開始位置（マズルフラッシュの位置）
-        const startPosition = new THREE.Vector3();
-        this.muzzleFlash.getWorldPosition(startPosition);
-        
-        // 弾道の方向ベクトル
-        const direction = new THREE.Vector3(
-            Math.sin(this.rotation.y) * Math.cos(this.rotation.x),
-            Math.sin(this.rotation.x),
-            Math.cos(this.rotation.y) * Math.cos(this.rotation.x)
-        ).normalize();
-        
-        // 弾道の終了位置（一定距離前方）
-        const endPosition = new THREE.Vector3().copy(startPosition).add(
-            direction.clone().multiplyScalar(50)
-        );
-        
-        // レイキャストで実際の衝突位置を検出
-        const raycaster = new THREE.Raycaster(startPosition, direction);
-        const targets = this.game.enemies
-            .filter(enemy => enemy.model && !enemy.isDead)
-            .map(enemy => enemy.model);
-        
-        // 環境オブジェクトも含める
-        const environmentObjects = this.game.gameObjects.environment;
-        const allTargets = [...targets, ...environmentObjects];
-        
-        const intersects = raycaster.intersectObjects(allTargets, true);
-        if (intersects.length > 0) {
-            // 衝突地点があればそこまでの弾道を描画
-            endPosition.copy(intersects[0].point);
-        }
-        
-        // 弾道を表す線分を作成
-        const trailGeometry = new THREE.BufferGeometry().setFromPoints([
-            startPosition,
-            endPosition
-        ]);
-        
-        const trailMaterial = new THREE.LineBasicMaterial({ 
-            color: this.specialAbilityActive ? 0x00ffff : 0xffffaa,
-            transparent: true,
-            opacity: 0.8,
-            linewidth: 1
-        });
-        
-        const trail = new THREE.Line(trailGeometry, trailMaterial);
-        this.game.scene.add(trail);
-        
-        // 少し経過したら弾道を消す
-        setTimeout(() => {
-            this.game.scene.remove(trail);
-            trail.geometry.dispose();
-            trail.material.dispose();
-        }, 100);
-    }
-    
-    /**
-     * ヒットエフェクトの表示
-     */
-    createHitEffect(position) {
-        if (!position) return;
-        
-        // ヒットエフェクト（パーティクル）
-        const particleCount = 20;
-        const geometry = new THREE.BufferGeometry();
-        const vertices = [];
-        
-        for (let i = 0; i < particleCount; i++) {
-            // ヒット地点から全方向にパーティクルを飛ばす
-            const x = (Math.random() - 0.5) * 0.5;
-            const y = (Math.random() - 0.5) * 0.5;
-            const z = (Math.random() - 0.5) * 0.5;
+            // 衝突があれば、X/Z方向の速度をゼロにする（衝突面には移動不可）
+            this.velocity.x = 0;
+            this.velocity.z = 0;
             
-            vertices.push(position.x, position.y, position.z);
-            vertices.push(position.x + x, position.y + y, position.z + z);
+            // 壁からスライドする処理などを実装可能
         }
         
-        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        // モデルの位置も更新
+        if (this.model) {
+            this.model.position.set(this.position.x, this.position.y, this.position.z);
+        }
         
-        const material = new THREE.LineBasicMaterial({
-            color: this.specialAbilityActive ? 0x00ffff : 0xff0000,
-            transparent: true,
-            opacity: 0.8
-        });
-        
-        const particles = new THREE.LineSegments(geometry, material);
-        this.game.scene.add(particles);
-        
-        // 少し経過したらエフェクトを消す
-        setTimeout(() => {
-            this.game.scene.remove(particles);
-            particles.geometry.dispose();
-            particles.material.dispose();
-        }, 300);
+        // カメラの位置も更新
+        this.updateCamera();
     }
     
     /**
-     * マズルフラッシュエフェクトの表示
+     * 地面との衝突判定
      */
-    showMuzzleFlash() {
-        if (this.muzzleFlash) {
-            // フラッシュを表示
-            this.muzzleFlash.visible = true;
-            
-            // 少し経過したら非表示に
-            setTimeout(() => {
-                this.muzzleFlash.visible = false;
-            }, 50);
+    checkGroundCollision(newPosition) {
+        // 地面の高さ（Y=0）
+        const groundHeight = 0;
+        
+        // 地面に接地または地面より下にいる場合
+        if (newPosition.y <= groundHeight + this.height / 2) {
+            newPosition.y = groundHeight + this.height / 2;
+            this.velocity.y = 0;
+            this.onGround = true;
+            this.isJumping = false;
+            this.isFalling = false;
         }
     }
     
     /**
-     * リロード処理
+     * 障害物との衝突判定
      */
-    reload() {
-        if (this.isReloading || this.ammo >= this.maxAmmo) return;
+    checkObstacleCollision(newPosition) {
+        // プレイヤーの足元と中心高さの位置
+        const playerBottom = newPosition.y - this.height / 2;
+        const playerMiddle = newPosition.y;
+        const playerTop = newPosition.y + this.height / 2;
         
-        this.isReloading = true;
+        // 障害物リスト（環境オブジェクト内の障害物のみを対象に）
+        const obstacles = this.game.gameObjects.environment.filter(obj => 
+            obj.name === "obstacle" || obj.name === "furniture" || obj.name === "wall");
         
-        // リロード音の再生
-        this.game.playSound('reload');
-        
-        // 武器モデルのリロードアニメーション
-        this.playReloadAnimation();
-        
-        setTimeout(() => {
-            this.ammo = this.maxAmmo;
-            this.isReloading = false;
-            // HUDの更新
-            this.updateHUD();
-        }, GameConfig.player.reloadTime);
-    }
-    
-    /**
-     * リロードアニメーション
-     */
-    playReloadAnimation() {
-        if (this.weaponModel) {
-            // 武器を下げるアニメーション
-            const originalPosition = { ...this.weaponModel.position };
+        for (const obstacle of obstacles) {
+            // 障害物の位置と大きさを取得
+            if (!obstacle.geometry) continue;
+            let box;
             
-            // 武器を下げる
-            this.weaponModel.position.y -= 0.1;
-            this.weaponModel.rotation.x = 0.3;
-            
-            // リロード時間の半分で元に戻す
-            setTimeout(() => {
-                this.weaponModel.position.y = originalPosition.y;
-                this.weaponModel.rotation.x = 0;
-            }, GameConfig.player.reloadTime / 2);
-        }
-    }
-    
-    /**
-     * 特殊能力のタイプを切り替える
-     */
-    switchSpecialAbilityType() {
-        // 特殊能力がアクティブ中は切り替え不可
-        if (this.specialAbilityActive) return;
-        
-        // タイプを切り替え
-        this.specialAbilityType = this.specialAbilityType === "attack" ? "buff" : "attack";
-        
-        // UIの更新
-        const typeElement = document.getElementById('special-ability-type');
-        if (typeElement) {
-            typeElement.textContent = this.specialAbilityType === "attack" ? "攻撃強化" : "防御強化";
-            typeElement.className = this.specialAbilityType; // CSSクラスを更新
-        }
-        
-        // 切り替え音を再生
-        this.game.playSound('switchAbility');
-        
-        // エフェクトカラーの更新
-        this.updateSpecialEffectColor();
-    }
-    
-    /**
-     * 特殊能力の効果を適用
-     */
-    applySpecialAbilityEffect() {
-        if (this.specialAbilityType === "attack") {
-            // 攻撃強化モードの効果
-            // 既存の実装で、shoot() メソッド内でダメージが2倍になる
-        } else if (this.specialAbilityType === "buff") {
-            // 防御強化モードの効果
-            // 既存の実装で、takeDamage() メソッド内でダメージが半減
-            // 追加効果として、一時的に回復
-            this.heal(this.maxHealth * 0.1); // 最大体力の10%回復
-            
-            // 移動速度一時的アップの効果も追加可能
-            // この部分は move() メソッド内で対応する必要がある
-        }
-    }
-    
-    /**
-     * 特殊能力エフェクトの色を更新
-     */
-    updateSpecialEffectColor() {
-        const color = this.specialAbilityType === "attack" ? 0x00ffff : 0x33cc33;
-        this.specialEffects.forEach(effect => {
-            if (effect && effect.material) {
-                effect.material.color.setHex(color);
-            }
-        });
-    }
-    
-    /**
-     * 特殊能力の使用
-     */
-    useSpecialAbility() {
-        if (!this.specialAbilityReady || this.specialAbilityActive) return;
-        
-        this.specialAbilityReady = false;
-        this.specialAbilityActive = true;
-        this.game.playSound('specialAbility');
-        
-        // 特殊能力効果の適用
-        this.applySpecialAbilityEffect();
-        
-        // 特殊能力のエフェクト表示
-        this.showSpecialAbilityEffect();
-        
-        // HUDの更新
-        const barFill = document.querySelector('#special-meter .bar-fill');
-        if (barFill) {
-            barFill.style.width = '100%';
-            barFill.style.backgroundColor = this.specialAbilityType === "attack" ? '#ff00ff' : '#33cc33';
-        }
-        
-        // 特殊能力の効果時間
-        setTimeout(() => {
-            this.specialAbilityActive = false;
-            
-            if (barFill) {
-                barFill.style.backgroundColor = '#4ea6ff';
-            }
-            
-            // 特殊能力エフェクト終了
-            this.hideSpecialAbilityEffect();
-            
-            // クールダウン開始
-            let cooldownProgress = 0;
-            const cooldownInterval = 100; // 更新間隔（ミリ秒）
-            
-            const cooldownTimer = setInterval(() => {
-                cooldownProgress += cooldownInterval;
-                const percentage = (cooldownProgress / GameConfig.player.specialAbilityCooldown) * 100;
-                
-                if (barFill) {
-                    barFill.style.width = percentage + '%';
+            try {
+                // バウンディングボックスがなければ計算
+                if (!obstacle.geometry.boundingBox) {
+                    obstacle.geometry.computeBoundingBox();
                 }
                 
-                if (cooldownProgress >= GameConfig.player.specialAbilityCooldown) {
-                    clearInterval(cooldownTimer);
-                    this.specialAbilityReady = true;
-                }
-            }, cooldownInterval);
+                // ローカル座標のバウンディングボックスをコピー
+                box = obstacle.geometry.boundingBox.clone();
+                
+                // ワールド座標に変換
+                box.applyMatrix4(obstacle.matrixWorld);
+            } catch (e) {
+                console.warn("障害物のバウンディングボックス計算に失敗:", e);
+                continue;
+            }
             
-        }, GameConfig.player.specialAbilityDuration);
-    }
-    
-    /**
-     * 特殊能力エフェクトの表示
-     */
-    showSpecialAbilityEffect() {
-        // エフェクトを表示
-        this.specialEffects.forEach(effect => {
-            if (effect) {
-                effect.visible = true;
+            // 球体による衝突検出（簡易版）
+            const obstacleCenter = new THREE.Vector3();
+            box.getCenter(obstacleCenter);
+            
+            const boxSize = new THREE.Vector3();
+            box.getSize(boxSize);
+            
+            // 障害物の半径（XZの最大値の半分）
+            const obstacleRadius = Math.max(boxSize.x, boxSize.z) / 2;
+            
+            // プレイヤーと障害物の中心間の水平距離
+            const dx = newPosition.x - obstacleCenter.x;
+            const dz = newPosition.z - obstacleCenter.z;
+            const horizontalDistanceSquared = dx * dx + dz * dz;
+            
+            // 衝突判定の距離（プレイヤーの半径 + 障害物の半径）
+            const collisionDistanceSquared = Math.pow(this.collisionRadius + obstacleRadius, 2);
+            
+            // 水平方向の衝突判定
+            if (horizontalDistanceSquared < collisionDistanceSquared) {
+                // 高さ方向の衝突判定（プレイヤーの足元〜頭まで）
+                const obstacleTop = obstacleCenter.y + boxSize.y / 2;
+                const obstacleBottom = obstacleCenter.y - boxSize.y / 2;
                 
-                // エフェクトのアニメーション
-                // 単純に拡大縮小を繰り返す
-                const animate = () => {
-                    if (!this.specialAbilityActive) return;
-                    
-                    const scale = 0.5 + 0.2 * Math.sin(Date.now() * 0.005);
-                    effect.scale.set(scale, scale, scale);
-                    
-                    requestAnimationFrame(animate);
-                };
-                
-                animate();
+                // 高さ方向の交差判定
+                if (playerBottom <= obstacleTop && playerTop >= obstacleBottom) {
+                    // 衝突発生！
+                    return true; 
+                }
             }
-        });
+        }
+        
+        return false; // 衝突なし
     }
     
     /**
-     * 特殊能力エフェクトの非表示
-     */
-    hideSpecialAbilityEffect() {
-        this.specialEffects.forEach(effect => {
-            if (effect) {
-                effect.visible = false;
-            }
-        });
-    }
-    
-    /**
-     * ダメージを受ける処理
+     * ダメージを受ける
      */
     takeDamage(amount) {
-        // 特殊能力発動中は半分のダメージ
-        const actualDamage = this.specialAbilityActive ? amount / 2 : amount;
+        if (this.health <= 0) return; // すでに死亡していれば何もしない
         
-        this.health -= actualDamage;
+        this.health -= amount;
         
-        // ダメージ音の再生
-        this.game.playSound('playerDamage');
-        
-        // 画面を赤く点滅させるなどのダメージ表現（オプション）
-        this.showDamageEffect();
-        
-        // 体力が0以下になったらゲームオーバー
+        // 体力が0以下なら死亡処理
         if (this.health <= 0) {
             this.health = 0;
+            this.die();
+        }
+        
+        // UIの更新
+        this.game.updateHealthUI(this.health, this.maxHealth);
+        
+        // ヒット効果音
+        this.game.playSound('player_hit');
+        
+        // ヒットエフェクト（画面を一瞬赤く）
+        const damageOverlay = document.getElementById('damage-overlay');
+        if (damageOverlay) {
+            damageOverlay.style.opacity = '0.6';
+            setTimeout(() => {
+                damageOverlay.style.opacity = '0';
+            }, 300);
+        }
+    }
+    
+    /**
+     * 死亡処理
+     */
+    die() {
+        this.disableControls();
+        
+        // 死亡アニメーション（例: カメラを倒す）
+        if (this.game.camera) {
+            const deathAnimation = {
+                rotationX: this.rotation.x,
+                destRotationX: Math.PI / 2 // 90度（真上を向く）
+            };
+            
+            const animateDeath = () => {
+                if (deathAnimation.rotationX < deathAnimation.destRotationX) {
+                    deathAnimation.rotationX += 0.03;
+                    this.rotation.x = deathAnimation.rotationX;
+                    this.updateCamera();
+                    requestAnimationFrame(animateDeath);
+                } else {
+                    // 死亡アニメーション完了後
+                    setTimeout(() => {
+                        this.game.gameOver();
+                    }, 1000);
+                }
+            };
+            
+            animateDeath();
+        } else {
             this.game.gameOver();
         }
         
-        // HUDの更新
-        this.updateHUD();
+        console.log('プレイヤーが死亡しました');
+        
+        // 死亡効果音
+        this.game.playSound('player_death');
     }
     
     /**
-     * ダメージエフェクトの表示
+     * スキルを習得
      */
-    showDamageEffect() {
-        // 画面を赤く点滅させる簡易エフェクト
-        const damageOverlay = document.createElement('div');
-        damageOverlay.style.position = 'absolute';
-        damageOverlay.style.top = '0';
-        damageOverlay.style.left = '0';
-        damageOverlay.style.width = '100%';
-        damageOverlay.style.height = '100%';
-        damageOverlay.style.backgroundColor = 'rgba(255, 0, 0, 0.3)';
-        damageOverlay.style.pointerEvents = 'none';
-        damageOverlay.style.zIndex = '10';
-        damageOverlay.style.opacity = '0.7';
-        document.getElementById('game-screen').appendChild(damageOverlay);
+    learnSkill(skill) {
+        this.skills.push(skill);
         
-        // フェードアウト
-        setTimeout(() => {
-            damageOverlay.style.transition = 'opacity 0.5s ease-out';
-            damageOverlay.style.opacity = '0';
-            
-            // エフェクト終了後に要素を削除
-            setTimeout(() => {
-                damageOverlay.remove();
-            }, 500);
-        }, 100);
+        if (!this.activeSkill) {
+            this.activeSkill = skill;
+        }
+        
+        console.log(`新しいスキルを習得: ${skill.name}`);
+        
+        // UI更新
+        this.game.updateSkillUI(this.activeSkill, this.skillCooldown);
+    }
+    
+    /**
+     * 武器を入手
+     */
+    acquireWeapon(weapon) {
+        this.weapons.push(weapon);
+        
+        console.log(`新しい武器を入手: ${weapon.name}`);
+        
+        // UI更新
+        this.game.updateWeaponUI(this.currentWeapon);
     }
     
     /**
@@ -752,77 +698,66 @@ class Player {
      */
     heal(amount) {
         this.health = Math.min(this.health + amount, this.maxHealth);
-        this.updateHUD();
+        
+        // UI更新
+        this.game.updateHealthUI(this.health, this.maxHealth);
+        
+        // 回復効果音
+        this.game.playSound('heal');
     }
     
     /**
-     * スコア加算
-     */
-    addScore(points) {
-        this.score += points;
-        this.updateHUD();
-    }
-    
-    /**
-     * HUDの更新
-     */
-    updateHUD() {
-        // 体力バーの更新
-        const healthBar = document.querySelector('#health-bar .bar-fill');
-        if (healthBar) {
-            const healthPercentage = (this.health / this.maxHealth) * 100;
-            healthBar.style.width = healthPercentage + '%';
-        }
-        
-        // 残弾数の更新
-        const ammoElement = document.getElementById('ammo');
-        const maxAmmoElement = document.getElementById('max-ammo');
-        if (ammoElement) ammoElement.textContent = this.ammo;
-        if (maxAmmoElement) maxAmmoElement.textContent = this.maxAmmo;
-        
-        // スコアの更新
-        const scoreElement = document.getElementById('score');
-        if (scoreElement) scoreElement.textContent = this.score;
-        
-        // リロード中の表示
-        const ammoDisplay = document.getElementById('ammo-display');
-        if (ammoDisplay) {
-            if (this.isReloading) {
-                ammoDisplay.textContent = "リロード中...";
-            } else {
-                ammoDisplay.textContent = `残弾: ${this.ammo} / ${this.maxAmmo}`;
-            }
-        }
-    }
-    
-    /**
-     * プレイヤーの更新処理
+     * 更新処理
      */
     update() {
+        // 移動処理
         this.move();
         
-        // プレイヤーの3Dモデル（武器など）の位置と回転を更新
-        this.updateModel();
-        
-        // HUDの更新
-        this.updateHUD();
+        // スキルのクールダウン処理
+        if (this.skillCooldown > 0) {
+            this.skillCooldown--;
+            
+            // UI更新（一定間隔で）
+            if (this.skillCooldown % 10 === 0) {
+                this.game.updateSkillUI(this.activeSkill, this.skillCooldown);
+            }
+        }
     }
     
     /**
-     * プレイヤーモデルの更新
+     * モデルの更新（アニメーションなど）
      */
     updateModel() {
-        // 武器モデルの動きを追加（歩行時の揺れなど）
-        if (this.weaponModel && !this.isReloading) {
-            // 移動中は武器を軽く揺らす
-            if (this.keys.forward || this.keys.backward || this.keys.left || this.keys.right) {
-                const bobAmount = 0.01;
-                const bobSpeed = 5;
-                const now = Date.now() * 0.001; // 秒単位
-                
-                this.weaponModel.position.y = -0.2 + Math.sin(now * bobSpeed) * bobAmount;
-                this.weaponModel.position.x = 0.3 + Math.sin(now * bobSpeed * 0.5) * bobAmount * 0.5;
-            }
+        // 将来的にアニメーション処理を追加
+    }
+    
+    /**
+     * 位置とカメラを強制的にリセット
+     */
+    resetPositionAndCamera(position = { x: 0, y: 1, z: 0 }) {
+        console.log('プレイヤー位置とカメラを強制リセットします:', position);
+        
+        // 位置を設定
+        this.position = {
+            x: position.x,
+            y: position.y,
+            z: position.z
+        };
+        
+        // 速度をゼロにリセット
+        this.velocity = { x: 0, y: 0, z: 0 };
+        
+        // 回転は前向きにリセット
+        this.rotation = { x: 0, y: 0, z: 0 };
+        
+        // モデル位置を更新
+        if (this.model) {
+            this.model.position.set(position.x, position.y, position.z);
         }
+        
+        // カメラ位置も更新
+        this.updateCamera();
+        
+        console.log('プレイヤーとカメラの位置をリセットしました');
     }
 }
