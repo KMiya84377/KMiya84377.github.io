@@ -442,6 +442,9 @@ class Game {
         // ステージマネージャーを初期化して最初のステージを開始
         this.stageManager.currentStageIndex = -1;
         this.stageManager.nextStage();
+        
+        // ゲーム開始時にポインターロックを有効化
+        document.getElementById('game-canvas').requestPointerLock();
     }
     
     /**

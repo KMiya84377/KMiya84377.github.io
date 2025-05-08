@@ -17,7 +17,7 @@ class Stage {
         this.isCleared = false;
         this.spawnPoints = [];
         this.isActive = false;
-        this.enemyFactory = new EnemyFactory(game);
+        // EnemyFactoryのインスタンス化を削除し、静的メソッドを使用するように変更
     }
     
     /**
@@ -67,7 +67,8 @@ class Stage {
             
             for (let i = 0; i < bossCount; i++) {
                 const position = this.getRandomSpawnPoint();
-                const boss = this.enemyFactory.createEnemy(bossType, position);
+                // 静的メソッドの正しい呼び出し方法に変更
+                const boss = EnemyFactory.createEnemy(this.game, bossType, position);
                 
                 if (boss) {
                     this.enemies.push(boss);
@@ -83,7 +84,8 @@ class Stage {
     spawnEnemyGroup(type, count) {
         for (let i = 0; i < count; i++) {
             const position = this.getRandomSpawnPoint();
-            const enemy = this.enemyFactory.createEnemy(type, position);
+            // 静的メソッドの正しい呼び出し方法に変更
+            const enemy = EnemyFactory.createEnemy(this.game, type, position);
             
             if (enemy) {
                 this.enemies.push(enemy);
