@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ブラックエンジニア・リベンジ</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="loading-screen" class="screen active">
+            <h1>ブラックエンジニア・リベンジ</h1>
+            <p>ロード中...<span id="loading-progress">0</span>%</p>
+            <div class="progress-bar">
+                <div class="progress"></div>
+            </div>
+            <button id="start-button" style="display:none;">ゲーム開始</button>
+        </div>
+        
+        <div id="start-screen" class="screen">
+            <h1>ブラックエンジニア・リベンジ</h1>
+            <p>ブラック企業に勤めるシステムエンジニアとなり、超能力を使って立ち向かえ！</p>
+            <button id="play-button">プレイ開始</button>
+            <div class="controls-info">
+                <h3>操作方法</h3>
+                <p>移動: WASDキー または 矢印キー</p>
+                <p>照準/視点移動: マウス</p>
+                <p>攻撃: マウス左クリック</p>
+                <p>特殊能力: スペースキー</p>
+                <p>リロード: Rキー</p>
+            </div>
+        </div>
+        
+        <div id="game-screen" class="screen">
+            <div id="hud">
+                <div id="health-bar">
+                    <div class="bar-label">体力</div>
+                    <div class="bar-container">
+                        <div class="bar-fill"></div>
+                    </div>
+                </div>
+                <div id="score-display">スコア: <span id="score">0</span></div>
+                <div id="ammo-display">残弾: <span id="ammo">30</span> / <span id="max-ammo">30</span></div>
+                <div id="stage-display">ステージ: <span id="stage">1</span> / 10</div>
+                <div id="special-meter">
+                    <div class="bar-label">特殊能力</div>
+                    <div class="bar-container">
+                        <div class="bar-fill"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="crosshair"></div>
+            <div id="game-canvas"></div>
+            <div id="dialog-box" style="display: none;">
+                <div id="dialog-portrait"></div>
+                <div id="dialog-text"></div>
+                <div id="dialog-next">▼ 次へ</div>
+            </div>
+        </div>
+        
+        <div id="stage-transition" class="screen">
+            <h2>ステージ <span id="next-stage">1</span></h2>
+            <div id="stage-description"></div>
+            <div id="stage-objective"></div>
+            <p>準備ができたらクリック</p>
+        </div>
+        
+        <div id="game-over-screen" class="screen">
+            <h1>ゲームオーバー</h1>
+            <p>スコア: <span id="final-score">0</span></p>
+            <button id="restart-button">再挑戦</button>
+            <button id="main-menu-button">メインメニューに戻る</button>
+        </div>
+        
+        <div id="victory-screen" class="screen">
+            <h1>ゲームクリア！</h1>
+            <h2>おめでとうございます！</h2>
+            <p>最終スコア: <span id="victory-score">0</span></p>
+            <div id="ending-message"></div>
+            <button id="play-again-button">もう一度プレイ</button>
+            <button id="victory-menu-button">メインメニューに戻る</button>
+        </div>
+    </div>
+
+    <!-- ゲームスクリプト -->
+    <script src="js/three.min.js"></script>
+    <script src="js/game-config.js"></script>
+    <script src="js/enemy.js"></script>
+    <script src="js/player.js"></script>
+    <script src="js/stage.js"></script>
+    <script src="js/story.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>

@@ -1,0 +1,289 @@
+/* 全体のスタイル設定 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Hiragino Kaku Gothic Pro', 'メイリオ', sans-serif;
+}
+
+body {
+    overflow: hidden;
+    background-color: #000;
+}
+
+button {
+    background-color: #ee3e38;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    margin: 10px;
+    border-radius: 4px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #ff5b56;
+}
+
+#game-container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+}
+
+/* スクリーン共通スタイル */
+.screen {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    padding: 20px;
+    text-align: center;
+    z-index: 100;
+}
+
+.screen.active {
+    display: flex;
+}
+
+.screen h1 {
+    font-size: 48px;
+    margin-bottom: 20px;
+    color: #ee3e38;
+    text-shadow: 0 0 10px rgba(255, 59, 59, 0.5);
+}
+
+.screen h2 {
+    font-size: 36px;
+    margin: 15px 0;
+}
+
+.screen p {
+    font-size: 18px;
+    margin-bottom: 15px;
+}
+
+/* ローディング画面 */
+#loading-screen {
+    background-color: #000;
+}
+
+.progress-bar {
+    width: 80%;
+    height: 20px;
+    background-color: #333;
+    border-radius: 10px;
+    margin: 20px 0;
+    overflow: hidden;
+}
+
+.progress {
+    height: 100%;
+    width: 0%;
+    background-color: #ee3e38;
+    transition: width 0.3s;
+}
+
+/* スタート画面 */
+#start-screen {
+    background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('../assets/images/background.jpg');
+    background-size: cover;
+    background-position: center;
+}
+
+.controls-info {
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 15px;
+    border-radius: 10px;
+    margin-top: 20px;
+    max-width: 500px;
+}
+
+.controls-info h3 {
+    color: #ee3e38;
+    margin-bottom: 10px;
+}
+
+/* ゲーム画面 */
+#game-screen {
+    background-color: transparent;
+}
+
+#hud {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+#health-bar, #special-meter {
+    width: 200px;
+}
+
+.bar-label {
+    font-size: 14px;
+    margin-bottom: 3px;
+}
+
+.bar-container {
+    height: 15px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 7px;
+    overflow: hidden;
+}
+
+#health-bar .bar-fill {
+    height: 100%;
+    width: 100%;
+    background-color: #ee3e38;
+    transition: width 0.3s;
+}
+
+#special-meter .bar-fill {
+    height: 100%;
+    width: 0%;
+    background-color: #4ea6ff;
+    transition: width 0.3s;
+}
+
+#score-display, #ammo-display, #stage-display {
+    font-size: 18px;
+    font-weight: bold;
+    text-shadow: 1px 1px 3px #000;
+}
+
+#crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    pointer-events: none;
+}
+
+#crosshair::before, #crosshair::after {
+    content: '';
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.7);
+}
+
+#crosshair::before {
+    width: 2px;
+    height: 10px;
+    top: 5px;
+    left: 9px;
+}
+
+#crosshair::after {
+    width: 10px;
+    height: 2px;
+    top: 9px;
+    left: 5px;
+}
+
+/* ダイアログボックス */
+#dialog-box {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    max-width: 800px;
+    background-color: rgba(0, 0, 0, 0.8);
+    border: 2px solid #ee3e38;
+    border-radius: 10px;
+    padding: 15px;
+    color: white;
+    display: flex;
+    z-index: 20;
+}
+
+#dialog-portrait {
+    width: 80px;
+    height: 80px;
+    background-size: cover;
+    margin-right: 15px;
+    border-radius: 5px;
+}
+
+#dialog-text {
+    flex: 1;
+    font-size: 18px;
+    line-height: 1.5;
+}
+
+#dialog-next {
+    position: absolute;
+    bottom: 5px;
+    right: 15px;
+    font-size: 14px;
+    color: #ee3e38;
+    animation: bounce 0.8s infinite alternate;
+}
+
+@keyframes bounce {
+    from { transform: translateY(0); }
+    to { transform: translateY(-5px); }
+}
+
+/* ステージ遷移画面 */
+#stage-transition {
+    background-color: rgba(0, 0, 0, 0.9);
+}
+
+#stage-description, #stage-objective {
+    max-width: 600px;
+    margin: 15px 0;
+}
+
+/* ゲームオーバー画面 */
+#game-over-screen {
+    background-color: rgba(0, 0, 0, 0.9);
+}
+
+/* 勝利画面 */
+#victory-screen {
+    background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('../assets/images/victory.jpg');
+    background-size: cover;
+    background-position: center;
+}
+
+#ending-message {
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 20px;
+    border-radius: 10px;
+    margin: 20px 0;
+    max-width: 700px;
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+    .screen h1 {
+        font-size: 36px;
+    }
+    
+    .screen h2 {
+        font-size: 28px;
+    }
+    
+    #health-bar, #special-meter {
+        width: 150px;
+    }
+}
