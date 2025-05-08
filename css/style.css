@@ -92,7 +92,7 @@ button:hover {
 
 /* スタート画面 */
 #start-screen {
-    background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('../assets/images/background.jpg');
+    background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('../assets/images/background/stage1.svg');
     background-size: cover;
     background-position: center;
 }
@@ -258,7 +258,7 @@ button:hover {
 
 /* 勝利画面 */
 #victory-screen {
-    background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('../assets/images/victory.jpg');
+    background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('../assets/images/background/office.svg');
     background-size: cover;
     background-position: center;
 }

@@ -504,22 +504,30 @@ class Player {
      */
     updateHUD() {
         // 体力バーの更新
-        const healthPercentage = (this.health / this.maxHealth) * 100;
-        document.querySelector('#health-bar .bar-fill').style.width = healthPercentage + '%';
+        const healthBar = document.querySelector('#health-bar .bar-fill');
+        if (healthBar) {
+            const healthPercentage = (this.health / this.maxHealth) * 100;
+            healthBar.style.width = healthPercentage + '%';
+        }
         
         // 残弾数の更新
-        document.getElementById('ammo').textContent = this.ammo;
-        document.getElementById('max-ammo').textContent = this.maxAmmo;
+        const ammoElement = document.getElementById('ammo');
+        const maxAmmoElement = document.getElementById('max-ammo');
+        if (ammoElement) ammoElement.textContent = this.ammo;
+        if (maxAmmoElement) maxAmmoElement.textContent = this.maxAmmo;
         
         // スコアの更新
-        document.getElementById('score').textContent = this.score;
+        const scoreElement = document.getElementById('score');
+        if (scoreElement) scoreElement.textContent = this.score;
         
         // リロード中の表示
-        if (this.isReloading) {
-            document.getElementById('ammo-display').textContent = "リロード中...";
-        } else {
-            document.getElementById('ammo-display').textContent = 
-                `残弾: ${this.ammo} / ${this.maxAmmo}`;
+        const ammoDisplay = document.getElementById('ammo-display');
+        if (ammoDisplay) {
+            if (this.isReloading) {
+                ammoDisplay.textContent = "リロード中...";
+            } else {
+                ammoDisplay.textContent = `残弾: ${this.ammo} / ${this.maxAmmo}`;
+            }
         }
     }
     

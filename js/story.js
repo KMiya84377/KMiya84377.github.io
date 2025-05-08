@@ -230,7 +230,7 @@ class StoryManager {
         } else {
             // キャラクター情報を使って表示
             try {
-                this.dialogPortrait.style.backgroundImage = `url('assets/images/portraits/${character.portrait}')`;
+                this.dialogPortrait.style.backgroundImage = `url('../assets/images/characters/${character.portrait}')`;
             } catch(e) {
                 console.error('Portrait image not found:', e);
                 this.dialogPortrait.style.backgroundImage = 'none';
