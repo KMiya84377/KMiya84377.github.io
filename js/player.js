@@ -45,6 +45,7 @@ class Player {
         this.skills = [];
         this.activeSkill = null;
         this.skillCooldown = 0;
+        this.initSkills(); // スキルを初期化
         
         // プレイヤーの武器
         this.weapons = [];
@@ -92,23 +93,173 @@ class Player {
     }
     
     /**
+     * スキルの初期化
+     */
+    initSkills() {
+        // デフォルトスキルを追加
+        const attackSkill = {
+            name: '攻撃強化',
+            type: 'attack',
+            cooldown: 10,
+            duration: 5,
+            isActive: false,
+            activate: () => {
+                console.log('攻撃強化スキルを発動しました');
+                
+                // スキル効果：武器のダメージを一時的に強化
+                if (this.currentWeapon) {
+                    const originalDamage = this.currentWeapon.damage;
+                    this.currentWeapon.damage *= 2;
+                    
+                    // スキル効果時間後に元に戻す
+                    setTimeout(() => {
+                        if (this.currentWeapon) {
+                            this.currentWeapon.damage = originalDamage;
+                            console.log('攻撃強化効果が切れました');
+                        }
+                        attackSkill.isActive = false;
+                    }, attackSkill.duration * 1000);
+                    
+                    attackSkill.isActive = true;
+                }
+                
+                // エフェクトの表示
+                const flash = document.createElement('div');
+                flash.style.position = 'absolute';
+                flash.style.top = '0';
+                flash.style.left = '0';
+                flash.style.width = '100%';
+                flash.style.height = '100%';
+                flash.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
+                flash.style.zIndex = '100';
+                flash.style.pointerEvents = 'none';
+                flash.style.transition = 'opacity 0.5s';
+                
+                document.body.appendChild(flash);
+                
+                setTimeout(() => {
+                    flash.style.opacity = '0';
+                    setTimeout(() => {
+                        if (flash.parentNode) {
+                            document.body.removeChild(flash);
+                        }
+                    }, 500);
+                }, 500);
+                
+                // 効果音の再生
+                this.game.playSound('skill_activate');
+            }
+        };
+        
+        const defenseSkill = {
+            name: '防御強化',
+            type: 'defense',
+            cooldown: 15,
+            duration: 7,
+            isActive: false,
+            activate: () => {
+                console.log('防御強化スキルを発動しました');
+                
+                // スキル効果：ダメージを一時的に軽減
+                const damageReduction = 0.5; // 50%のダメージ軽減
+                const originalTakeDamage = this.takeDamage;
+                
+                this.takeDamage = function(amount) {
+                    // ダメージを軽減
+                    originalTakeDamage.call(this, amount * damageReduction);
+                };
+                
+                // スキル効果時間後に元に戻す
+                setTimeout(() => {
+                    this.takeDamage = originalTakeDamage;
+                    console.log('防御強化効果が切れました');
+                    defenseSkill.isActive = false;
+                }, defenseSkill.duration * 1000);
+                
+                defenseSkill.isActive = true;
+                
+                // エフェクトの表示
+                const flash = document.createElement('div');
+                flash.style.position = 'absolute';
+                flash.style.top = '0';
+                flash.style.left = '0';
+                flash.style.width = '100%';
+                flash.style.height = '100%';
+                flash.style.backgroundColor = 'rgba(0, 0, 255, 0.2)';
+                flash.style.zIndex = '100';
+                flash.style.pointerEvents = 'none';
+                flash.style.transition = 'opacity 0.5s';
+                
+                document.body.appendChild(flash);
+                
+                setTimeout(() => {
+                    flash.style.opacity = '0';
+                    setTimeout(() => {
+                        if (flash.parentNode) {
+                            document.body.removeChild(flash);
+                        }
+                    }, 500);
+                }, 500);
+                
+                // 効果音の再生
+                this.game.playSound('skill_activate');
+            }
+        };
+        
+        // スキルをリストに追加
+        this.skills.push(attackSkill);
+        this.skills.push(defenseSkill);
+        
+        // デフォルトでアクティブなスキルを設定
+        this.activeSkill = this.skills[0];
+        
+        console.log('スキルを初期化しました: ', this.activeSkill.name);
+    }
+    
+    /**
      * 入力イベントリスナーの設定
      */
     setupEventListeners() {
+        console.log('プレイヤーの入力イベントリスナーを設定開始');
+        
+        // キー状態を強制的にリセット (重要: 既存のキー状態をクリアする)
+        this.keys = {};
+        
+        // デバッグ用：最初から強制的にキー状態を有効にする
+        window.forceKeyState = (key, state) => {
+            console.log(`キー状態を強制設定: ${key} = ${state}`);
+            this.keys[key] = state;
+        };
+        
+        // デバッグ用：キー状態の出力
+        window.showKeyStates = () => {
+            console.log('キー状態:', this.keys);
+            return this.keys;
+        };
+        
         // キー入力のイベントリスナー
         document.addEventListener('keydown', (event) => {
-            if (!this.controlsEnabled) return;
+            console.log(`キー押下: ${event.code}`);
+            
+            // コントロールが無効でも常にキー状態は更新する (問題対応)
             this.keys[event.code] = true;
+            
+            if (!this.controlsEnabled) {
+                console.log('コントロールが無効のため、キー入力のアクションは実行しません');
+                return;
+            }
             
             // ジャンプ処理（スペースキー）
             if (event.code === 'Space' && this.onGround && !this.isJumping) {
                 this.startJump();
                 this.game.playSound('jump');
+                console.log('ジャンプを実行しました');
             }
             
             // 武器発射（マウス左クリックまたはCtrl）
             if (event.code === 'ControlLeft') {
                 this.shoot();
+                console.log('射撃を実行しました（キー）');
             }
             
             // 武器切り替え
@@ -124,6 +275,7 @@ class Player {
         
         document.addEventListener('keyup', (event) => {
             this.keys[event.code] = false;
+            console.log(`キー解放: ${event.code}`);
         });
         
         // マウス移動のイベントリスナー
@@ -143,10 +295,15 @@ class Player {
         
         // マウスクリックイベント
         document.addEventListener('mousedown', (event) => {
-            if (!this.controlsEnabled) return;
+            console.log(`マウスボタン押下: ${event.button}`);
+            if (!this.controlsEnabled) {
+                console.log('コントロールが無効のため、マウス入力を無視します');
+                return;
+            }
             
             // 左クリックで射撃
             if (event.button === 0) {
+                console.log('射撃を実行しました（マウス）');
                 this.shoot();
             }
             
@@ -172,7 +329,7 @@ class Player {
                 console.log('ポインターロックが解除されました');
                 // ゲーム中であれば、一時停止メニューを表示
                 if (this.game.isPlaying) {
-                    this.game.pause();
+                    this.game.togglePause(); // pauseではなくtogglePauseを使用
                 }
             }
         });
@@ -183,7 +340,9 @@ class Player {
             // エラー回復処理を行う（必要に応じて）
             setTimeout(() => {
                 try {
-                    this.game.canvas.requestPointerLock();
+                    if (this.game.canvas) {
+                        this.game.canvas.requestPointerLock();
+                    }
                 } catch (e) {
                     console.warn('ポインターロックの再試行に失敗しました:', e);
                 }
@@ -191,15 +350,35 @@ class Player {
         });
         
         // ゲームキャンバスクリック時に自動的にポインターロックを要求
-        this.game.canvas.addEventListener('click', () => {
-            if (!document.pointerLockElement && this.game.isPlaying) {
-                try {
-                    this.game.canvas.requestPointerLock();
-                } catch (e) {
-                    console.warn('ポインターロックの要求に失敗しました:', e);
+        if (this.game.canvas) {
+            this.game.canvas.addEventListener('click', () => {
+                if (!document.pointerLockElement && this.game.isPlaying) {
+                    try {
+                        this.game.canvas.requestPointerLock();
+                    } catch (e) {
+                        console.warn('ポインターロックの要求に失敗しました:', e);
+                    }
                 }
-            }
-        });
+            });
+        } else {
+            console.warn('ゲームキャンバスが見つかりません。プレイヤー初期化時点ではキャンバスがまだ設定されていない可能性があります。');
+            
+            // ゲームが開始されたときにイベントリスナーを追加する
+            document.addEventListener('gameStarted', () => {
+                if (this.game.canvas) {
+                    this.game.canvas.addEventListener('click', () => {
+                        if (!document.pointerLockElement && this.game.isPlaying) {
+                            try {
+                                this.game.canvas.requestPointerLock();
+                            } catch (e) {
+                                console.warn('ポインターロックの要求に失敗しました:', e);
+                            }
+                        }
+                    });
+                    console.log('ゲーム開始後にキャンバスイベントリスナーを設定しました');
+                }
+            });
+        }
         
         // プレイヤー位置がリセットされたときのイベント処理
         document.addEventListener('playerPositionReset', () => {
@@ -213,6 +392,8 @@ class Player {
             // カメラの位置も更新
             this.updateCamera();
         });
+        
+        console.log('プレイヤーの入力イベントリスナーを設定完了');
     }
     
     /**
@@ -235,11 +416,25 @@ class Player {
      * コントロールの有効化
      */
     enableControls() {
+        const wasDisabled = !this.controlsEnabled;
         this.controlsEnabled = true;
         console.log('プレイヤーコントロールが有効になりました');
         
-        // キー状態をリセット（押しっぱなし防止）
-        this.keys = {};
+        if (wasDisabled) {
+            // キー状態をリセットするが、現在押されているキーは維持する
+            // 現在のキーボード状態をチェックし、実際に押されているキーを更新
+            const keyCodesToCheck = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+            const currentKeys = {};
+            
+            keyCodesToCheck.forEach(keyCode => {
+                // 現在のDOM上のキー状態を維持
+                if (this.keys[keyCode]) {
+                    currentKeys[keyCode] = true;
+                }
+            });
+            
+            this.keys = currentKeys; // 新しいオブジェクトで更新
+        }
     }
     
     /**
@@ -249,8 +444,8 @@ class Player {
         this.controlsEnabled = false;
         console.log('プレイヤーコントロールが無効になりました');
         
-        // キー状態をリセット
-        this.keys = {};
+        // キー状態を記憶するが、操作は処理しない
+        // this.keys は直接クリアせず、残しておく
     }
     
     /**
@@ -343,9 +538,84 @@ class Player {
      * 射撃処理
      */
     shoot() {
-        if (this.currentWeapon && !this.game.isPaused) {
-            this.currentWeapon.fire(this.position, this.getForwardVector());
+        console.log('========== 射撃処理開始 ==========');
+        
+        if (!this.currentWeapon) {
+            console.error('武器がありません');
+            return;
         }
+        
+        // ゲームが一時停止中かチェック
+        if (this.game.isPaused) {
+            console.log('ゲームが一時停止中のため射撃できません');
+            
+            // ゲームの一時停止状態が異常に長い場合はリセットを試みる
+            if (this.game.resetGameState && typeof this.game.resetGameState === 'function') {
+                console.log('ゲーム状態をリセットしています...');
+                this.game.resetGameState();
+                
+                // リセット後は射撃を続行
+                if (this.game.isPaused) {
+                    console.log('ゲーム状態のリセットに失敗しました。射撃処理を中止します。');
+                    return;
+                } else {
+                    console.log('ゲーム状態のリセットに成功しました。射撃処理を続行します。');
+                }
+            } else {
+                return;
+            }
+        }
+        
+        // 前方ベクトルの取得
+        const forwardDirection = this.getForwardVector();
+        console.log(`射撃方向: (${forwardDirection.x.toFixed(2)}, ${forwardDirection.y.toFixed(2)}, ${forwardDirection.z.toFixed(2)})`);
+        console.log(`プレイヤー位置: (${this.position.x.toFixed(2)}, ${this.position.y.toFixed(2)}, ${this.position.z.toFixed(2)})`);
+        console.log(`カメラ回転: pitch=${this.rotation.x.toFixed(2)}, yaw=${this.rotation.y.toFixed(2)}`);
+        
+        try {
+            // 武器の発射処理を呼び出し
+            console.log(`武器: ${this.currentWeapon.name}, 残弾: ${this.currentWeapon.ammo}/${this.currentWeapon.maxAmmo}`);
+            this.currentWeapon.fire(this.position, forwardDirection);
+            console.log('武器の発射処理を呼び出しました');
+            
+            // 発射エフェクト（画面に一瞬フラッシュを表示）
+            const flashOverlay = document.getElementById('muzzle-flash-overlay');
+            if (flashOverlay) {
+                flashOverlay.style.opacity = '0.3';
+                setTimeout(() => {
+                    flashOverlay.style.opacity = '0';
+                }, 50);
+            } else {
+                console.log('muzzle-flash-overlay要素が見つかりません。HTMLに追加してください');
+                
+                // 要素がなければ作成
+                const newFlashOverlay = document.createElement('div');
+                newFlashOverlay.id = 'muzzle-flash-overlay';
+                newFlashOverlay.style.position = 'absolute';
+                newFlashOverlay.style.top = '0';
+                newFlashOverlay.style.left = '0';
+                newFlashOverlay.style.width = '100%';
+                newFlashOverlay.style.height = '100%';
+                newFlashOverlay.style.backgroundColor = 'rgba(255, 255, 180, 0.3)';
+                newFlashOverlay.style.pointerEvents = 'none';
+                newFlashOverlay.style.transition = 'opacity 0.05s';
+                newFlashOverlay.style.opacity = '0';
+                newFlashOverlay.style.zIndex = '1000';
+                document.body.appendChild(newFlashOverlay);
+                console.log('マズルフラッシュオーバーレイを作成しました');
+                
+                // 作成した要素にエフェクトを適用
+                newFlashOverlay.style.opacity = '0.3';
+                setTimeout(() => {
+                    newFlashOverlay.style.opacity = '0';
+                }, 50);
+            }
+            
+        } catch (error) {
+            console.error('射撃処理中にエラーが発生しました:', error);
+        }
+        
+        console.log('========== 射撃処理完了 ==========');
     }
     
     /**
@@ -372,6 +642,7 @@ class Player {
      */
     useSkill() {
         if (this.activeSkill && this.skillCooldown <= 0) {
+            console.log(`スキル "${this.activeSkill.name}" を使用しています...`);
             this.activeSkill.activate();
             this.skillCooldown = this.activeSkill.cooldown;
             
@@ -380,7 +651,30 @@ class Player {
             
             // UI更新
             this.game.updateSkillUI(this.activeSkill, this.skillCooldown);
+        } else if (this.skillCooldown > 0) {
+            console.log(`スキルのクールダウン中: あと ${this.skillCooldown.toFixed(1)} 秒`);
+        } else {
+            console.log('使用可能なスキルがありません');
         }
+    }
+    
+    /**
+     * スキル切り替え
+     */
+    switchSkill() {
+        if (this.skills.length <= 1) return;
+        
+        const currentIndex = this.skills.indexOf(this.activeSkill);
+        const nextIndex = (currentIndex + 1) % this.skills.length;
+        
+        this.activeSkill = this.skills[nextIndex];
+        console.log(`スキルを切り替え: ${this.activeSkill.name}`);
+        
+        // スキル切り替え効果音
+        this.game.playSound('switchAbility');
+        
+        // UI更新
+        this.game.updateSkillUI(this.activeSkill, this.skillCooldown);
     }
     
     /**
@@ -402,56 +696,87 @@ class Player {
      * 移動処理
      */
     move() {
-        if (!this.controlsEnabled) return;
+        // 落下中・ダメージスタン中・死亡時・コントロール無効時は移動しない
+        if (this.isDead || !this.controlsEnabled) {
+            return;
+        }
         
-        // プレイヤーの向きベクトル
-        const forward = new THREE.Vector3(0, 0, -1);
-        const right = new THREE.Vector3(1, 0, 0);
+        // ダメージスタン中は移動しない
+        if (this.isStunned) {
+            this.velocity.x = 0;
+            this.velocity.z = 0;
+            return;
+        }
         
-        // Y軸回転のみ適用（上下の視点変更を移動方向に影響させない）
-        const quaternionY = new THREE.Quaternion();
-        quaternionY.setFromAxisAngle(new THREE.Vector3(0, 1, 0), this.rotation.y);
+        // 移動のデバッグログ
+        const movementKeys = Object.entries(this.keys)
+            .filter(([key, isPressed]) => isPressed && ['forward', 'backward', 'left', 'right'].includes(key))
+            .map(([key]) => key);
+            
+        if (movementKeys.length > 0) {
+            console.log(`プレイヤー移動: ${movementKeys.join(', ')}`);
+        }
         
-        forward.applyQuaternion(quaternionY);
-        right.applyQuaternion(quaternionY);
+        // いずれかの移動キーが押されているかチェック
+        const isMoving = 
+            this.keys.forward || 
+            this.keys.backward || 
+            this.keys.left || 
+            this.keys.right;
+            
+        // デバッグ：移動キーの状態を表示
+        console.log(`移動キー状態: forward=${this.keys.forward}, backward=${this.keys.backward}, left=${this.keys.left}, right=${this.keys.right}`);
         
-        // 移動ベクトル
+        // プレイヤーのローカル座標系での移動方向
         let moveX = 0;
         let moveZ = 0;
         
-        // WASDキーで移動
-        if (this.keys['KeyW']) {
-            moveX += forward.x * this.moveSpeed;
-            moveZ += forward.z * this.moveSpeed;
+        // 前後移動
+        if (this.keys.forward) {
+            moveZ -= 1;
         }
-        if (this.keys['KeyS']) {
-            moveX -= forward.x * this.moveSpeed;
-            moveZ -= forward.z * this.moveSpeed;
-        }
-        if (this.keys['KeyA']) {
-            moveX -= right.x * this.moveSpeed;
-            moveZ -= right.z * this.moveSpeed;
-        }
-        if (this.keys['KeyD']) {
-            moveX += right.x * this.moveSpeed;
-            moveZ += right.z * this.moveSpeed;
+        if (this.keys.backward) {
+            moveZ += 1;
         }
         
-        // 斜め移動の速度を正規化
+        // 左右移動
+        if (this.keys.left) {
+            moveX -= 1;
+        }
+        if (this.keys.right) {
+            moveX += 1;
+        }
+        
+        // 移動ベクトルの正規化（斜め移動時に速度が上がらないようにする）
         if (moveX !== 0 && moveZ !== 0) {
             const length = Math.sqrt(moveX * moveX + moveZ * moveZ);
             moveX /= length;
             moveZ /= length;
-            moveX *= this.moveSpeed;
-            moveZ *= this.moveSpeed;
         }
         
-        // 移動速度に加算
-        this.velocity.x += moveX;
-        this.velocity.z += moveZ;
+        // カメラの向きに基づいて移動方向を変換
+        const angle = this.rotation.y;
+        const sin = Math.sin(angle);
+        const cos = Math.cos(angle);
         
-        // 移動処理を行う
-        this.updatePosition();
+        // 移動方向をワールド座標に変換
+        const velocityX = (moveX * cos - moveZ * sin) * this.moveSpeed;
+        const velocityZ = (moveX * sin + moveZ * cos) * this.moveSpeed;
+        
+        // 速度を設定
+        if (isMoving) {
+            this.velocity.x = velocityX;
+            this.velocity.z = velocityZ;
+        } else {
+            // 移動キーが押されていない場合は停止
+            this.velocity.x = 0;
+            this.velocity.z = 0;
+        }
+        
+        // デバッグログ: 計算された速度ベクトル
+        if (isMoving) {
+            console.log(`計算された速度: (${this.velocity.x.toFixed(2)}, ${this.velocity.z.toFixed(2)}), 角度: ${(angle * 180 / Math.PI).toFixed(0)}度`);
+        }
     }
     
     /**
@@ -710,17 +1035,75 @@ class Player {
      * 更新処理
      */
     update() {
+        // コントロールが無効の場合、処理を減らす
+        if (!this.controlsEnabled || this.isDead) {
+            return;
+        }
+        
+        // デルタタイム（前回のフレームからの経過時間）を計算
+        const now = performance.now();
+        const deltaTime = now - this.lastUpdateTime;
+        this.lastUpdateTime = now;
+        
+        // スキルのクールダウンを更新
+        this.updateSkillCooldown(deltaTime);
+        
         // 移動処理
         this.move();
         
-        // スキルのクールダウン処理
-        if (this.skillCooldown > 0) {
-            this.skillCooldown--;
+        // 物理演算処理
+        this.updatePhysics();
+        
+        // 武器の更新
+        if (this.weapon) {
+            this.weapon.update(deltaTime);
+        }
+        
+        // 無敵時間の更新
+        if (this.invincibilityTime > 0) {
+            this.invincibilityTime -= deltaTime;
             
-            // UI更新（一定間隔で）
-            if (this.skillCooldown % 10 === 0) {
-                this.game.updateSkillUI(this.activeSkill, this.skillCooldown);
+            // 無敵時間中は点滅させる
+            if (this.model) {
+                // 200ミリ秒ごとに点滅
+                const isVisible = Math.floor(now / 200) % 2 === 0;
+                this.model.visible = isVisible;
             }
+            
+            // 無敵時間終了
+            if (this.invincibilityTime <= 0) {
+                this.invincibilityTime = 0;
+                if (this.model) {
+                    this.model.visible = true; // モデルを確実に表示
+                }
+            }
+        }
+        
+        // ダメージスタンの更新
+        if (this.stunTime > 0) {
+            this.stunTime -= deltaTime;
+            if (this.stunTime <= 0) {
+                this.stunTime = 0;
+                this.isStunned = false;
+            }
+        }
+        
+        // UIの更新（不要なアップデートを避けるため、100ミリ秒ごとに）
+        if (now - this.lastUIUpdateTime > 100) {
+            // 体力バーの更新
+            this.game.updateHealthUI(this.health, this.maxHealth);
+            
+            // 武器情報の更新
+            if (this.weapon) {
+                this.game.updateWeaponUI(this.weapon);
+            }
+            
+            this.lastUIUpdateTime = now;
+        }
+        
+        // モデルがある場合は位置を更新
+        if (this.model) {
+            this.model.position.set(this.position.x, this.position.y, this.position.z);
         }
     }
     
@@ -759,5 +1142,428 @@ class Player {
         this.updateCamera();
         
         console.log('プレイヤーとカメラの位置をリセットしました');
+    }
+    
+    /**
+     * 特殊能力を使用
+     */
+    useSpecialAbility() {
+        console.log("特殊能力の使用が試行されました");
+        // 特殊能力が選択されていない場合
+        if (!this.activeSkill) {
+            console.log("特殊能力が選択されていません");
+            return;
+        }
+        
+        // クールダウン中の場合
+        if (this.skillCooldown > 0) {
+            console.log(`特殊能力 ${this.activeSkill.name} はクールダウン中です (${(this.skillCooldown / 1000).toFixed(1)}秒)）`);
+            return;
+        }
+        
+        console.log(`特殊能力 ${this.activeSkill.name} を使用中`);
+        // 特殊能力の効果を適用
+        switch (this.activeSkill.type) {
+            case 'timeStop':
+                this.activateTimeStop();
+                break;
+            case 'heal':
+                this.activateHeal();
+                break;
+            case 'berserker':
+                this.activateBerserker();
+                break;
+            case 'invisible':
+                this.activateInvisibility();
+                break;
+            default:
+                console.warn(`未知の特殊能力タイプ: ${this.activeSkill.type}`);
+                return;
+        }
+        
+        // クールダウンを設定
+        this.skillCooldown = this.activeSkill.cooldown;
+        console.log(`特殊能力 ${this.activeSkill.name} のクールダウンを ${this.activeSkill.cooldown / 1000} 秒に設定`);
+        
+        // UIを更新
+        this.game.updateSkillUI(this.activeSkill, this.skillCooldown);
+        
+        // 効果音
+        this.game.playSound('specialAbility');
+    }
+    
+    /**
+     * タイムストップ能力の発動
+     */
+    activateTimeStop() {
+        console.log("タイムストップを発動");
+        // タイムストップ効果音を再生
+        this.game.playSound('timeStop');
+        
+        // 敵の動きを停止
+        this.game.enemies.forEach(enemy => {
+            // 敵の状態を保存
+            enemy._previousVelocity = { ...enemy.velocity };
+            enemy._previousMoveSpeed = enemy.moveSpeed;
+            enemy._previousAttackSpeed = enemy.attackSpeed;
+            
+            // 敵を停止
+            enemy.velocity = { x: 0, y: 0, z: 0 };
+            enemy.moveSpeed = 0;
+            enemy.attackSpeed = 0;
+            
+            // 敵のマテリアルを変更して時間停止を視覚的に表現
+            if (enemy.model && enemy.model.material) {
+                // マテリアルの元の色を保存
+                enemy._originalColor = enemy.model.material.color.getHex();
+                // 青っぽい色に変更
+                enemy.model.material.color.set(0x4444ff);
+            }
+        });
+        
+        // タイムストップのエフェクト（画面の青い色調）
+        const overlay = document.createElement('div');
+        overlay.id = 'time-stop-overlay';
+        overlay.style.position = 'absolute';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.backgroundColor = 'rgba(0, 0, 255, 0.2)';
+        overlay.style.pointerEvents = 'none';
+        overlay.style.zIndex = '100';
+        overlay.style.transition = 'opacity 0.5s';
+        document.getElementById('game-screen').appendChild(overlay);
+        
+        // タイムストップの持続時間
+        const duration = this.activeSkill.duration;
+        
+        // 効果時間後にエフェクトを解除
+        setTimeout(() => {
+            console.log("タイムストップの効果が切れました");
+            
+            // 敵の動きを元に戻す
+            this.game.enemies.forEach(enemy => {
+                // 敵がまだ存在し、死んでいなければ状態を復元
+                if (enemy && !enemy.isDead) {
+                    // 元の速度と能力を復元
+                    if (enemy._previousVelocity) {
+                        enemy.velocity = { ...enemy._previousVelocity };
+                    }
+                    if (enemy._previousMoveSpeed !== undefined) {
+                        enemy.moveSpeed = enemy._previousMoveSpeed;
+                    }
+                    if (enemy._previousAttackSpeed !== undefined) {
+                        enemy.attackSpeed = enemy._previousAttackSpeed;
+                    }
+                    
+                    // 敵のマテリアルを元に戻す
+                    if (enemy.model && enemy.model.material && enemy._originalColor !== undefined) {
+                        enemy.model.material.color.setHex(enemy._originalColor);
+                    }
+                }
+            });
+            
+            // オーバーレイを非表示にして削除
+            if (overlay) {
+                overlay.style.opacity = '0';
+                setTimeout(() => {
+                    if (overlay.parentNode) {
+                        overlay.parentNode.removeChild(overlay);
+                    }
+                }, 500); // フェードアウト完了後に削除
+            }
+            
+            // 能力終了の効果音
+            this.game.playSound('timeStopEnd');
+        }, duration);
+    }
+    
+    /**
+     * 回復能力の発動
+     */
+    activateHeal() {
+        console.log("回復能力を発動");
+        // 回復効果音を再生
+        this.game.playSound('heal');
+        
+        // 体力を回復
+        const healAmount = 50; // 固定回復量
+        this.health = Math.min(this.maxHealth, this.health + healAmount);
+        
+        // 回復エフェクト（緑色のオーバーレイ）
+        const overlay = document.createElement('div');
+        overlay.id = 'heal-overlay';
+        overlay.style.position = 'absolute';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.backgroundColor = 'rgba(0, 255, 0, 0.3)';
+        overlay.style.pointerEvents = 'none';
+        overlay.style.zIndex = '100';
+        overlay.style.transition = 'opacity 1s';
+        document.getElementById('game-screen').appendChild(overlay);
+        
+        // エフェクト終了
+        setTimeout(() => {
+            overlay.style.opacity = '0';
+            setTimeout(() => {
+                if (overlay.parentNode) {
+                    overlay.parentNode.removeChild(overlay);
+                }
+            }, 1000); // フェードアウト完了後に削除
+        }, 500);
+        
+        // UI更新
+        this.game.updateHealthUI(this.health, this.maxHealth);
+    }
+    
+    /**
+     * バーサーカー能力の発動
+     */
+    activateBerserker() {
+        console.log("バーサーカー能力を発動");
+        // バーサーカー効果音を再生
+        this.game.playSound('berserker');
+        
+        // 元のステータスを保存
+        this._originalDamage = this.damage;
+        this._originalFireRate = this.weapon.fireRate;
+        
+        // 攻撃力と発射速度を強化
+        this.damage *= 2; // 攻撃力2倍
+        this.weapon.fireRate *= 1.5; // 発射速度1.5倍
+        
+        // バーサーカーエフェクト（赤いオーバーレイ）
+        const overlay = document.createElement('div');
+        overlay.id = 'berserker-overlay';
+        overlay.style.position = 'absolute';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
+        overlay.style.pointerEvents = 'none';
+        overlay.style.zIndex = '100';
+        overlay.style.transition = 'opacity 0.5s';
+        document.getElementById('game-screen').appendChild(overlay);
+        
+        // バーサーカーの持続時間
+        const duration = this.activeSkill.duration;
+        
+        // 効果時間後にエフェクトを解除
+        setTimeout(() => {
+            console.log("バーサーカーの効果が切れました");
+            
+            // 元のステータスに戻す
+            if (this._originalDamage !== undefined) {
+                this.damage = this._originalDamage;
+            }
+            if (this._originalFireRate !== undefined) {
+                this.weapon.fireRate = this._originalFireRate;
+            }
+            
+            // オーバーレイを非表示にして削除
+            if (overlay) {
+                overlay.style.opacity = '0';
+                setTimeout(() => {
+                    if (overlay.parentNode) {
+                        overlay.parentNode.removeChild(overlay);
+                    }
+                }, 500); // フェードアウト完了後に削除
+            }
+            
+            // 能力終了の効果音
+            this.game.playSound('berserkerEnd');
+        }, duration);
+    }
+    
+    /**
+     * 透明化能力の発動
+     */
+    activateInvisibility() {
+        console.log("透明化能力を発動");
+        // 透明化効果音を再生
+        this.game.playSound('invisibility');
+        
+        // 透明化の効果を設定
+        this.isInvisible = true;
+        
+        // 透明化エフェクト（プレイヤーモデルを半透明に）
+        if (this.model) {
+            this._originalOpacity = this.model.material.opacity;
+            this.model.material.transparent = true;
+            this.model.material.opacity = 0.3;
+        }
+        
+        // 透明化のエフェクト（薄い紫のオーバーレイ）
+        const overlay = document.createElement('div');
+        overlay.id = 'invisibility-overlay';
+        overlay.style.position = 'absolute';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.backgroundColor = 'rgba(128, 0, 255, 0.1)';
+        overlay.style.pointerEvents = 'none';
+        overlay.style.zIndex = '100';
+        overlay.style.transition = 'opacity 0.5s';
+        document.getElementById('game-screen').appendChild(overlay);
+        
+        // 敵のターゲットを解除
+        this.game.enemies.forEach(enemy => {
+            enemy.isDetectingPlayer = false;
+            enemy.targetPlayer = null;
+            
+            // 敵の行動をパトロールに変更
+            if (enemy.aiState) {
+                enemy.aiState = 'patrol';
+            }
+        });
+        
+        // 透明化の持続時間
+        const duration = this.activeSkill.duration;
+        
+        // 効果時間後にエフェクトを解除
+        setTimeout(() => {
+            console.log("透明化の効果が切れました");
+            
+            // 透明化の効果を解除
+            this.isInvisible = false;
+            
+            // プレイヤーモデルを元に戻す
+            if (this.model && this._originalOpacity !== undefined) {
+                this.model.material.opacity = this._originalOpacity;
+                if (this._originalOpacity >= 1) {
+                    this.model.material.transparent = false;
+                }
+            }
+            
+            // オーバーレイを非表示にして削除
+            if (overlay) {
+                overlay.style.opacity = '0';
+                setTimeout(() => {
+                    if (overlay.parentNode) {
+                        overlay.parentNode.removeChild(overlay);
+                    }
+                }, 500); // フェードアウト完了後に削除
+            }
+            
+            // 能力終了の効果音
+            this.game.playSound('invisibilityEnd');
+        }, duration);
+    }
+    
+    /**
+     * 特殊能力の切り替え
+     */
+    switchSpecialAbility() {
+        console.log("特殊能力の切り替えを試行");
+        // 特殊能力の配列
+        const abilities = [
+            {
+                name: "タイムストップ",
+                type: "timeStop",
+                cooldown: 15000, // 15秒
+                duration: 5000   // 5秒
+            },
+            {
+                name: "回復",
+                type: "heal",
+                cooldown: 20000, // 20秒
+                duration: 0      // 即座に効果
+            },
+            {
+                name: "バーサーカー",
+                type: "berserker",
+                cooldown: 25000, // 25秒
+                duration: 8000   // 8秒
+            },
+            {
+                name: "透明化",
+                type: "invisible",
+                cooldown: 30000, // 30秒
+                duration: 10000  // 10秒
+            }
+        ];
+        
+        // 現在のスキルのインデックスを取得
+        let currentIndex = -1;
+        if (this.activeSkill) {
+            currentIndex = abilities.findIndex(ability => ability.type === this.activeSkill.type);
+        }
+        
+        // 次のスキルに切り替え
+        currentIndex = (currentIndex + 1) % abilities.length;
+        this.activeSkill = abilities[currentIndex];
+        
+        // スキル切り替えの効果音
+        this.game.playSound('switchAbility');
+        
+        console.log(`特殊能力を ${this.activeSkill.name} に切り替えました`);
+        
+        // UIを更新
+        this.skillCooldown = 0; // 切り替え時はクールダウンをリセット
+        this.game.updateSkillUI(this.activeSkill, this.skillCooldown);
+    }
+    
+    /**
+     * 特殊能力のクールダウンを更新
+     */
+    updateSkillCooldown(deltaTime) {
+        if (this.skillCooldown > 0) {
+            this.skillCooldown -= deltaTime;
+            if (this.skillCooldown < 0) {
+                this.skillCooldown = 0;
+            }
+            
+            // UIを更新
+            if (this.activeSkill) {
+                this.game.updateSkillUI(this.activeSkill, this.skillCooldown);
+            }
+        }
+    }
+    
+    /**
+     * キーの状態の更新
+     * @param {string} keyCode - キーコード
+     * @param {boolean} isPressed - キーが押されているか
+     */
+    updateKey(keyCode, isPressed) {
+        // キー入力処理
+        const key = this.keyMap[keyCode];
+        if (key) {
+            // キーの状態を更新
+            this.keys[key] = isPressed;
+            
+            // デバッグログ
+            console.log(`キー入力: ${key} = ${isPressed ? 'Pressed' : 'Released'}`);
+            
+            // WASD/矢印キーの入力状態を管理
+            if (['forward', 'backward', 'left', 'right'].includes(key)) {
+                this.keyPressTime = isPressed ? performance.now() : 0;
+            }
+            
+            // ジャンプキーが押された場合
+            if (key === 'jump' && isPressed && this.onGround) {
+                this.jump();
+            }
+            
+            // リロードキー
+            if (key === 'reload' && isPressed) {
+                this.reload();
+            }
+            
+            // 特殊能力の使用
+            if (key === 'special' && isPressed) {
+                this.useSpecialAbility();
+            }
+            
+            // 特殊能力の切り替え
+            if (key === 'switchAbility' && isPressed) {
+                this.switchSpecialAbility();
+            }
+        }
     }
 }

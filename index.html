@@ -31,38 +31,55 @@
             </div>
         </div>
         
+        <!-- ゲーム画面 -->
         <div id="game-screen" class="screen">
-            <div id="hud">
-                <div id="health-bar">
-                    <div class="bar-label">体力</div>
-                    <div class="bar-container">
-                        <div class="bar-fill"></div>
-                    </div>
-                </div>
-                <div id="score-display">スコア: <span id="score">0</span></div>
-                <div id="ammo-display">残弾: <span id="ammo">30</span> / <span id="max-ammo">30</span></div>
-                <div id="stage-display">ステージ: <span id="stage">1</span> / 10</div>
-                <div id="special-meter">
-                    <div class="bar-label">特殊能力: <span id="special-ability-type">攻撃強化</span> 
-                        <button id="switch-ability-button" title="特殊能力切り替え">切替</button>
-                    </div>
-                    <div class="bar-container">
-                        <div class="bar-fill"></div>
-                    </div>
-                </div>
-            </div>
-            <div id="crosshair"></div>
-            <div id="minimap-container">
-                <div id="minimap">
-                    <!-- プレイヤーマーカーはJavaScriptで動的に生成されます -->
-                    <div id="map-label">マップ</div>
-                </div>
-            </div>
             <div id="game-canvas"></div>
-            <div id="dialog-box" style="display: none;">
-                <div id="dialog-portrait"></div>
-                <div id="dialog-text"></div>
-                <div id="dialog-next">▼ 次へ</div>
+            
+            <!-- UI要素 -->
+            <div id="game-ui">
+                <div id="health-container">
+                    <div id="health-bar">
+                        <div class="bar-fill"></div>
+                    </div>
+                    <div id="health-text">体力</div>
+                </div>
+                
+                <div id="weapon-container">
+                    <div id="weapon-info">
+                        <span id="ammo">30</span>/<span id="max-ammo">30</span>
+                    </div>
+                    <div id="weapon-name">標準武器</div>
+                </div>
+                
+                <div id="special-container">
+                    <div id="special-meter">
+                        <div class="bar-fill"></div>
+                    </div>
+                    <div id="special-ability-type">特殊能力</div>
+                </div>
+                
+                <div id="score-container">
+                    <div id="score-label">スコア:</div>
+                    <div id="score-value">0</div>
+                </div>
+                
+                <div id="minimap-container">
+                    <div id="minimap"></div>
+                </div>
+                
+                <!-- ヒットエフェクト用のオーバーレイ -->
+                <div id="damage-overlay"></div>
+                <div id="muzzle-flash-overlay"></div>
+            </div>
+            
+            <!-- ポーズメニュー -->
+            <div id="pause-menu" style="display: none;">
+                <div class="pause-container">
+                    <h2>ゲーム中断</h2>
+                    <p>一時停止中です</p>
+                    <button id="resume-button">ゲームを再開</button>
+                    <button id="pause-menu-button">メインメニューに戻る</button>
+                </div>
             </div>
         </div>
         
@@ -93,10 +110,12 @@
     <!-- ゲームスクリプト -->
     <script src="js/three.min.js"></script>
     <script src="js/game-config.js"></script>
-    <script src="js/enemy.js"></script>
+    <script src="js/enemy/index.js"></script>
+    <script src="js/weapon.js"></script>
     <script src="js/player.js"></script>
     <script src="js/stage.js"></script>
     <script src="js/story.js"></script>
-    <script src="js/game.js"></script>
+    <!-- コアシステムモジュール -->
+    <script src="js/core/index.js" type="module"></script>
 </body>
 </html>

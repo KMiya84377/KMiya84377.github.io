@@ -858,23 +858,33 @@ class Stage {
         // スポーン位置を設定（実際のゲームではマップ情報から取得）
         this.setupSpawnPoints();
         
+        // 敵が確実に生成されるようにカウントを追跡
+        let totalEnemiesCreated = 0;
+        
         // 敵の生成
-        if (this.enemyConfig.boss > 0) {
-            this.spawnEnemyGroup('boss', this.enemyConfig.boss);
+        if (this.enemyConfig.boss && this.enemyConfig.boss > 0) {
+            const created = this.spawnEnemyGroup('boss', this.enemyConfig.boss);
+            totalEnemiesCreated += created;
+            console.log(`ボス敵を ${created}体 生成しました`);
         }
         
-        if (this.enemyConfig.customer > 0) {
-            this.spawnEnemyGroup('customer', this.enemyConfig.customer);
+        if (this.enemyConfig.customer && this.enemyConfig.customer > 0) {
+            const created = this.spawnEnemyGroup('customer', this.enemyConfig.customer);
+            totalEnemiesCreated += created;
+            console.log(`顧客敵を ${created}体 生成しました`);
         }
         
-        if (this.enemyConfig.sales > 0) {
-            this.spawnEnemyGroup('sales', this.enemyConfig.sales);
+        if (this.enemyConfig.sales && this.enemyConfig.sales > 0) {
+            const created = this.spawnEnemyGroup('sales', this.enemyConfig.sales);
+            totalEnemiesCreated += created;
+            console.log(`営業敵を ${created}体 生成しました`);
         }
         
         // ボス敵が設定されていれば生成
         if (this.enemyConfig.finalBoss && this.enemyConfig.finalBoss.count > 0) {
-            const bossType = this.enemyConfig.finalBoss.type;
+            const bossType = this.enemyConfig.finalBoss.type || 'finalBoss';
             const bossCount = this.enemyConfig.finalBoss.count;
+            let created = 0;
             
             for (let i = 0; i < bossCount; i++) {
                 const position = this.getRandomSpawnPoint();
@@ -883,20 +893,50 @@ class Stage {
                 if (boss) {
                     this.enemies.push(boss);
                     this.game.addEnemy(boss);
+                    created++;
                 }
             }
+            
+            totalEnemiesCreated += created;
+            console.log(`最終ボス敵を ${created}体 生成しました`);
         }
         
         // デバッグログ
         console.log(`ステージ ${this.id} に敵を生成: ${this.enemies.length}体`);
         
         // もし敵が一体も生成されなかった場合は、デフォルトで敵を生成
-        if (this.enemies.length === 0) {
+        // ただし、ステージ設定で明示的に敵なしの場合を除く
+        const shouldHaveEnemies = 
+            (this.enemyConfig.boss && this.enemyConfig.boss > 0) || 
+            (this.enemyConfig.customer && this.enemyConfig.customer > 0) ||
+            (this.enemyConfig.sales && this.enemyConfig.sales > 0) ||
+            (this.enemyConfig.finalBoss && this.enemyConfig.finalBoss.count > 0);
+            
+        if (totalEnemiesCreated === 0 && shouldHaveEnemies) {
             console.warn(`ステージ ${this.id} に敵が生成されませんでした。デフォルト敵を生成します。`);
-            const position = { x: 0, y: 0, z: -15 };
+            
+            // 安全エリアの反対側に敵を生成
+            const angle = Math.PI; // プレイヤーの反対側
+            const distance = 15;    // 安全エリアから十分離れた場所
+            const position = {
+                x: this.safeSpawnArea.x + Math.cos(angle) * distance,
+                y: 0,
+                z: this.safeSpawnArea.z + Math.sin(angle) * distance
+            };
+            
             const enemy = EnemyFactory.createEnemy(this.game, 'default', position);
-            this.enemies.push(enemy);
-            this.game.addEnemy(enemy);
+            if (enemy) {
+                this.enemies.push(enemy);
+                this.game.addEnemy(enemy);
+                totalEnemiesCreated++;
+            }
+        }
+        
+        // 敵を生成しなかった場合（設定上、敵がいないステージの場合）は
+        // 明示的にステージクリアフラグを立てておく（自動クリアを防ぐ）
+        if (totalEnemiesCreated === 0 && !shouldHaveEnemies) {
+            console.log(`ステージ ${this.id} は敵なしステージです。自動クリアを無効化します。`);
+            this.requireManualClear = true;
         }
     }
     
@@ -904,6 +944,7 @@ class Stage {
      * 敵グループを生成
      */
     spawnEnemyGroup(type, count) {
+        let created = 0;
         for (let i = 0; i < count; i++) {
             const position = this.getRandomSpawnPoint();
             // 静的メソッドの正しい呼び出し方法に変更
@@ -912,38 +953,57 @@ class Stage {
             if (enemy) {
                 this.enemies.push(enemy);
                 this.game.addEnemy(enemy);
+                created++;
             }
         }
+        return created;
     }
     
     /**
      * スポーン位置の設定（安全エリアから十分に離れた位置に設定）
      */
     setupSpawnPoints() {
-        // 半径方向に離れた位置を複数用意
+        // 既存のスポーンポイントをクリア
         this.spawnPoints = [];
         
         // 安全エリアの中心からの最小距離
-        const minDistance = this.safeSpawnArea.radius + 10; // 安全エリアから最低10m離す
+        const minDistance = this.safeSpawnArea.radius + 15; // 安全エリアから最低15m離す（10mから15mに増加）
+        const maxDistance = 23; // 壁の近く（部屋サイズは25m）
         
-        // 放射状に配置（8方向、それぞれ異なる距離）
-        for (let i = 0; i < 8; i++) {
-            const angle = (i / 8) * Math.PI * 2;
-            const distance = minDistance + Math.random() * 5; // 10-15mの距離
-            
-            const x = this.safeSpawnArea.x + Math.cos(angle) * distance;
-            const z = this.safeSpawnArea.z + Math.sin(angle) * distance;
-            
-            this.spawnPoints.push({ x, y: 0, z });
-        }
-        
-        // 追加の遠距離スポーン地点
+        // ステージの四隅にスポーンポイントを追加
         this.spawnPoints.push({ x: -20, y: 0, z: -20 });
         this.spawnPoints.push({ x: 20, y: 0, z: -20 });
         this.spawnPoints.push({ x: -20, y: 0, z: 20 });
         this.spawnPoints.push({ x: 20, y: 0, z: 20 });
         
+        // 壁の近くに追加のスポーンポイントを配置
+        for (let i = -20; i <= 20; i += 10) {
+            this.spawnPoints.push({ x: i, y: 0, z: -22 }); // 奥の壁沿い
+            this.spawnPoints.push({ x: i, y: 0, z: 22 });  // 手前の壁沿い
+            this.spawnPoints.push({ x: -22, y: 0, z: i });  // 左の壁沿い
+            this.spawnPoints.push({ x: 22, y: 0, z: i });   // 右の壁沿い
+        }
+        
+        // ランダムスポーンポイント（放射状に配置）
+        // 各エリアを均等にカバーするため、より多くの数と幅広い角度を使用
+        for (let i = 0; i < 16; i++) {
+            const angle = (i / 16) * Math.PI * 2 + (Math.random() * 0.2 - 0.1); // 少しランダム性を持たせる
+            const distance = minDistance + Math.random() * (maxDistance - minDistance); // 15-23mの距離
+            
+            const x = this.safeSpawnArea.x + Math.cos(angle) * distance;
+            const z = this.safeSpawnArea.z + Math.sin(angle) * distance;
+            
+            // 部屋の境界内に収める
+            const boundedX = Math.max(-23, Math.min(23, x));
+            const boundedZ = Math.max(-23, Math.min(23, z));
+            
+            this.spawnPoints.push({ x: boundedX, y: 0, z: boundedZ });
+        }
+        
         console.log(`スポーンポイントを ${this.spawnPoints.length}箇所 設定しました`);
+        
+        // スポーンポイントをシャッフル
+        this.spawnPoints = this.shuffleArray(this.spawnPoints);
     }
 
     /**
@@ -954,8 +1014,11 @@ class Stage {
         const obstacles = this.game.gameObjects.environment.filter(obj => 
             obj.name === "obstacle" || obj.name === "furniture" || obj.name === "wall");
         
+        // 一度シャッフルしたスポーンポイントのコピーを使用
+        const shuffledPoints = [...this.spawnPoints];
+        
         // 安全なスポーン位置を探す
-        for (const spawnPoint of this.shuffleArray([...this.spawnPoints])) {
+        for (const spawnPoint of shuffledPoints) {
             let isColliding = false;
             
             // 安全エリア内にスポーンしないようにチェック
@@ -963,85 +1026,100 @@ class Stage {
             const dz = spawnPoint.z - this.safeSpawnArea.z;
             const distanceFromSafeAreaSquared = dx * dx + dz * dz;
             
-            // 安全エリア内または近すぎる場合はスキップ（半径+3mの範囲）
-            const minDistanceFromSafe = this.safeSpawnArea.radius + 3;
+            // 安全エリア内または近すぎる場合はスキップ（半径+5mの範囲に変更）
+            const minDistanceFromSafe = this.safeSpawnArea.radius + 5; // 3mから5mに増加
             if (distanceFromSafeAreaSquared < minDistanceFromSafe * minDistanceFromSafe) {
                 continue;
             }
             
+            // 他の敵と近すぎないかチェック（敵同士の距離を確保）
+            let tooCloseToOtherEnemy = false;
+            for (const enemy of this.enemies) {
+                const enemyDx = enemy.position.x - spawnPoint.x;
+                const enemyDz = enemy.position.z - spawnPoint.z;
+                const enemyDistSquared = enemyDx * enemyDx + enemyDz * enemyDz;
+                
+                // 3m以内に他の敵がいたらスキップ
+                if (enemyDistSquared < 9) {
+                    tooCloseToOtherEnemy = true;
+                    break;
+                }
+            }
+            
+            if (tooCloseToOtherEnemy) {
+                continue;
+            }
+            
+            // 障害物との衝突チェック
             for (const obstacle of obstacles) {
                 if (!obstacle.geometry) continue;
                 
-                // 障害物のバウンディングボックスを取得
-                let box;
                 try {
+                    // 障害物のバウンディングボックスを取得
+                    let box;
                     if (!obstacle.geometry.boundingBox) {
                         obstacle.geometry.computeBoundingBox();
                     }
                     box = obstacle.geometry.boundingBox.clone();
                     box.applyMatrix4(obstacle.matrixWorld);
-                } catch (e) {
-                    console.warn("障害物のバウンディングボックス計算に失敗:", e);
-                    continue;
-                }
-                
-                // 障害物の位置を取得
-                const obstaclePos = new THREE.Vector3();
-                try {
+                    
+                    // 障害物の位置を取得
+                    const obstaclePos = new THREE.Vector3();
                     obstacle.getWorldPosition(obstaclePos);
+                    
+                    // 敵の半径と障害物の半径を設定
+                    const enemyRadius = 1.0;
+                    
+                    // 障害物のサイズを考慮した安全距離
+                    const boxSize = new THREE.Vector3();
+                    box.getSize(boxSize);
+                    const obstacleRadius = Math.max(boxSize.x, boxSize.z) / 2;
+                    
+                    // 距離の2乗を計算
+                    const dx = obstaclePos.x - spawnPoint.x;
+                    const dz = obstaclePos.z - spawnPoint.z;
+                    const distanceSquared = dx * dx + dz * dz;
+                    
+                    // 安全距離の2乗
+                    const minDistanceSquared = Math.pow(enemyRadius + obstacleRadius + 1.5, 2);
+                    
+                    // 衝突判定
+                    if (distanceSquared < minDistanceSquared) {
+                        isColliding = true;
+                        break;
+                    }
                 } catch (e) {
-                    console.warn("障害物のワールド位置の取得に失敗:", e);
+                    console.warn("障害物の衝突判定に失敗:", e);
                     continue;
-                }
-                
-                // 敵の半径と障害物の半径を設定
-                const enemyRadius = 1.0;
-                
-                // 障害物のサイズを考慮した安全距離
-                const boxSize = new THREE.Vector3();
-                box.getSize(boxSize);
-                const obstacleRadius = Math.max(boxSize.x, boxSize.z) / 2;
-                
-                // 距離の2乗を計算
-                const dx = obstaclePos.x - spawnPoint.x;
-                const dz = obstaclePos.z - spawnPoint.z;
-                const distanceSquared = dx * dx + dz * dz;
-                
-                // 安全距離の2乗
-                const minDistanceSquared = Math.pow(enemyRadius + obstacleRadius + 1.5, 2);
-                
-                // 衝突判定
-                if (distanceSquared < minDistanceSquared) {
-                    isColliding = true;
-                    break;
                 }
             }
             
             // 衝突していない位置が見つかった場合
             if (!isColliding) {
-                // わずかにランダム性を持たせる（±1.0 の範囲でオフセット）
+                // わずかにランダム性を持たせる（±0.5 の範囲でオフセット - より小さくして予測可能性を高める）
                 const safePosition = {
-                    x: spawnPoint.x + (Math.random() * 2 - 1) * 1.0,
+                    x: spawnPoint.x + (Math.random() * 2 - 1) * 0.5,
                     y: 0, // 地面の高さ
-                    z: spawnPoint.z + (Math.random() * 2 - 1) * 1.0
+                    z: spawnPoint.z + (Math.random() * 2 - 1) * 0.5
                 };
                 return safePosition;
             }
         }
         
-        // どのスポーン位置も使えない場合は、安全エリアの反対側にスポーン
-        const angle = Math.random() * Math.PI * 2;
-        const distance = 15; // 安全エリアから十分離れた場所
-        const fallbackPosition = {
-            x: this.safeSpawnArea.x + Math.cos(angle) * distance,
-            y: 0,
-            z: this.safeSpawnArea.z + Math.sin(angle) * distance
-        };
+        // どのスポーン位置も使えない場合は、部屋の隅にスポーン
+        const cornerPositions = [
+            { x: -20, y: 0, z: -20 },
+            { x: 20, y: 0, z: -20 },
+            { x: -20, y: 0, z: 20 },
+            { x: 20, y: 0, z: 20 }
+        ];
         
-        console.warn("通常のスポーン位置が見つからなかったため、代替位置を使用します:", fallbackPosition);
+        const fallbackPosition = cornerPositions[Math.floor(Math.random() * cornerPositions.length)];
+        
+        console.warn("使用可能なスポーン位置が見つからなかったため、部屋の隅を使用します:", fallbackPosition);
         return fallbackPosition;
     }
-
+    
     /**
      * 配列をランダムに並べ替える（Fisher-Yates シャッフル）
      */
@@ -1062,8 +1140,14 @@ class Stage {
         // 生きている敵の数をチェック
         const aliveEnemies = this.enemies.filter(enemy => !enemy.isDead);
         
-        // 敵がすべて倒されたらステージクリア
-        if (aliveEnemies.length === 0 && !this.isCleared) {
+        // 敵の状態をデバッグ出力
+        if (this.enemies.length > 0 && aliveEnemies.length === 0) {
+            console.log(`全ての敵(${this.enemies.length}体)が倒されました。ステージクリア条件を満たしています。`);
+        }
+        
+        // 敵が存在するかつ全て倒されたらステージクリア
+        // ただし、敵がいないステージ（requireManualClear=true）は自動クリアしない
+        if (this.enemies.length > 0 && aliveEnemies.length === 0 && !this.isCleared && !this.requireManualClear) {
             this.clear();
         }
     }
