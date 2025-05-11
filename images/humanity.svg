@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <rect width="300" height="300" fill="#2C3E50"/>
+  
+  <!-- グラデーション定義 -->
+  <linearGradient id="humanityGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#3498DB"/>
+    <stop offset="100%" stop-color="#9B59B6"/>
+  </linearGradient>
+  
+  <!-- 円の集合体（人類の繋がりを表現） -->
+  <circle cx="150" cy="150" r="100" fill="none" stroke="url(#humanityGrad)" stroke-width="2" opacity="0.7"/>
+  <circle cx="150" cy="150" r="80" fill="none" stroke="url(#humanityGrad)" stroke-width="2" opacity="0.7"/>
+  <circle cx="150" cy="150" r="60" fill="none" stroke="url(#humanityGrad)" stroke-width="2" opacity="0.7"/>
+  
+  <!-- 人間のシルエット -->
+  <circle cx="130" cy="120" r="15" fill="#ECF0F1"/> <!-- 頭 -->
+  <path d="M130,135 L130,175 L120,195 M130,175 L140,195 M130,155 L115,170 M130,155 L145,170" 
+        stroke="#ECF0F1" stroke-width="3" fill="none"/> <!-- 体と手足 -->
+        
+  <circle cx="170" cy="120" r="15" fill="#ECF0F1"/> <!-- 頭 -->
+  <path d="M170,135 L170,175 L160,195 M170,175 L180,195 M170,155 L155,170 M170,155 L185,170" 
+        stroke="#ECF0F1" stroke-width="3" fill="none"/> <!-- 体と手足 -->
+        
+  <!-- 繋がりを表す線 -->
+  <line x1="145" y1="120" x2="155" y2="120" stroke="#ECF0F1" stroke-width="2"/>
+  
+  <!-- DNAの二重らせん（人間の本質） -->
+  <path d="M70,70 C80,85 90,95 100,80 C110,65 120,55 130,70 C140,85 150,95 160,80" 
+        stroke="#3498DB" stroke-width="2" fill="none"/>
+  <path d="M70,80 C80,95 90,105 100,90 C110,75 120,65 130,80 C140,95 150,105 160,90" 
+        stroke="#9B59B6" stroke-width="2" fill="none"/>
+        
+  <!-- 星空（宇宙の中の人間） -->
+  <circle cx="50" cy="50" r="1.5" fill="#ECF0F1"/>
+  <circle cx="70" cy="40" r="1" fill="#ECF0F1"/>
+  <circle cx="90" cy="30" r="1.5" fill="#ECF0F1"/>
+  <circle cx="120" cy="45" r="1" fill="#ECF0F1"/>
+  <circle cx="150" cy="35" r="1.5" fill="#ECF0F1"/>
+  <circle cx="180" cy="50" r="1" fill="#ECF0F1"/>
+  <circle cx="200" cy="40" r="1.5" fill="#ECF0F1"/>
+  <circle cx="220" cy="30" r="1" fill="#ECF0F1"/>
+  <circle cx="240" cy="45" r="1.5" fill="#ECF0F1"/>
+  <circle cx="260" cy="35" r="1" fill="#ECF0F1"/>
+  
+  <!-- 思考を表す波形 -->
+  <path d="M70,230 C80,220 90,240 100,230 C110,220 120,240 130,230 C140,220 150,240 160,230 C170,220 180,240 190,230 C200,220 210,240 220,230" 
+        stroke="#ECF0F1" stroke-width="1" fill="none"/>
+        
+  <!-- 心臓の鼓動（生命） -->
+  <path d="M100,200 L120,200 L130,180 L140,220 L150,200 L170,200" 
+        stroke="#E74C3C" stroke-width="2" fill="none"/>
+        
+  <!-- テキスト -->
+  <text x="150" y="260" font-family="Arial" font-size="24" fill="#ECF0F1" text-anchor="middle">人間という存在</text>
+</svg>

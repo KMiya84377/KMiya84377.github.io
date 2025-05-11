@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <rect width="300" height="300" fill="#232F3E"/>
+  
+  <!-- グラデーション定義 -->
+  <linearGradient id="lambdaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#9D5CFF"/>
+    <stop offset="100%" stop-color="#FF9900"/>
+  </linearGradient>
+  
+  <!-- 関数実行のような波形パターン -->
+  <path d="M50,220 L100,100 L150,180 L200,80 L250,200" 
+        stroke="url(#lambdaGrad)" stroke-width="5" fill="none" stroke-linecap="round"/>
+  
+  <!-- Lambda記号 -->
+  <path d="M130,80 L170,80 L150,120 L180,170 L140,170 L120,130 L100,170 L60,170 Z" 
+        fill="#9D5CFF" stroke="#232F3E" stroke-width="1"/>
+        
+  <!-- サーバーレス関数の実行を表す要素 -->
+  <circle cx="100" cy="100" r="10" fill="#FF9900"/>
+  <circle cx="150" cy="180" r="10" fill="#FF9900"/>
+  <circle cx="200" cy="80" r="10" fill="#FF9900"/>
+  
+  <!-- データフロー -->
+  <path d="M40,40 C100,60 200,30 260,50" stroke="#9D5CFF" stroke-width="2" fill="none" opacity="0.5"/>
+  <path d="M40,60 C120,80 180,50 260,70" stroke="#9D5CFF" stroke-width="2" fill="none" opacity="0.5"/>
+  <path d="M40,200 C100,220 200,190 260,210" stroke="#9D5CFF" stroke-width="2" fill="none" opacity="0.5"/>
+  <path d="M40,220 C120,240 180,210 260,230" stroke="#9D5CFF" stroke-width="2" fill="none" opacity="0.5"/>
+  
+  <!-- コードブロック表現 -->
+  <rect x="80" y="210" width="140" height="40" rx="5" ry="5" fill="none" stroke="#9D5CFF" stroke-width="2"/>
+  <line x1="100" y1="220" x2="200" y2="220" stroke="#9D5CFF" stroke-width="1"/>
+  <line x1="100" y1="230" x2="180" y2="230" stroke="#9D5CFF" stroke-width="1"/>
+  <line x1="100" y1="240" x2="190" y2="240" stroke="#9D5CFF" stroke-width="1"/>
+  
+  <!-- テキスト -->
+  <text x="150" y="270" font-family="Arial" font-size="24" fill="#9D5CFF" text-anchor="middle">Lambda Function</text>
+</svg>

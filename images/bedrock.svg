@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <rect width="300" height="300" fill="#232F3E"/>
+  
+  <!-- グラデーション定義 -->
+  <linearGradient id="bedrockGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#FF9900"/>
+    <stop offset="100%" stop-color="#232F3E"/>
+  </linearGradient>
+  
+  <!-- 波形パターン -->
+  <path d="M0,150 C50,100 80,180 120,120 S180,80 220,130 S280,150 300,110" 
+        stroke="#FF9900" stroke-width="3" fill="none" opacity="0.6"/>
+  <path d="M0,170 C50,120 80,200 120,140 S180,100 220,150 S280,170 300,130" 
+        stroke="#FF9900" stroke-width="2" fill="none" opacity="0.4"/>
+  
+  <!-- 中央の岩のようなシンボル -->
+  <path d="M150,60 L180,120 L220,160 L180,200 L120,200 L90,160 L120,120 Z" 
+        fill="url(#bedrockGrad)" stroke="#FF9900" stroke-width="2"/>
+  
+  <!-- 人工知能の視覚化 -->
+  <circle cx="150" cy="140" r="25" fill="#232F3E" stroke="#FF9900" stroke-width="2"/>
+  <circle cx="150" cy="140" r="15" fill="#FF9900" opacity="0.7"/>
+  
+  <!-- 接続ノード -->
+  <circle cx="120" cy="100" r="5" fill="#FF9900"/>
+  <circle cx="180" cy="100" r="5" fill="#FF9900"/>
+  <circle cx="110" cy="170" r="5" fill="#FF9900"/>
+  <circle cx="190" cy="170" r="5" fill="#FF9900"/>
+  
+  <!-- 接続線 -->
+  <line x1="150" y1="140" x2="120" y2="100" stroke="#FF9900" stroke-width="1.5"/>
+  <line x1="150" y1="140" x2="180" y2="100" stroke="#FF9900" stroke-width="1.5"/>
+  <line x1="150" y1="140" x2="110" y2="170" stroke="#FF9900" stroke-width="1.5"/>
+  <line x1="150" y1="140" x2="190" y2="170" stroke="#FF9900" stroke-width="1.5"/>
+  
+  <!-- テキスト -->
+  <text x="150" y="250" font-family="Arial" font-size="24" fill="#FF9900" text-anchor="middle">Bedrock Harmony</text>
+</svg>

@@ -1,0 +1,247 @@
+/* 全体のリセットとフォント設定 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'ヒラギノ角ゴ Pro W3', 'Hiragino Kaku Gothic Pro', 'メイリオ', Meiryo, 'MS Pゴシック', sans-serif;
+    background-color: #f5f5f7;
+    color: #333;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* ヘッダーのスタイル */
+header {
+    text-align: center;
+    padding: 2rem 0;
+}
+
+header h1 {
+    font-size: 2.5rem;
+    color: #0066CC;
+    letter-spacing: 1px;
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    color: #666;
+    margin-top: 0.5rem;
+}
+
+/* 曲選択画面のスタイル */
+.music-selection {
+    margin: 2rem 0;
+}
+
+.music-selection h2 {
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 1.8rem;
+    color: #333;
+}
+
+.music-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 2rem;
+}
+
+.music-card {
+    background-color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+}
+
+.music-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+}
+
+.album-cover {
+    width: 100%;
+    height: 180px;
+    overflow: hidden;
+    background-color: #eee;
+}
+
+.album-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.track-info {
+    padding: 1rem;
+}
+
+.track-info h3 {
+    font-size: 1.2rem;
+    margin-bottom: 0.3rem;
+    color: #0066CC;
+}
+
+.track-info p {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+/* プレーヤーコンテナのスタイル */
+.player-container {
+    background-color: white;
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    margin: 2rem 0;
+}
+
+.now-playing {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.album-cover-large {
+    width: 180px;
+    height: 180px;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-right: 2rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.album-cover-large img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.track-info-large h2 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    color: #0066CC;
+}
+
+.track-info-large p {
+    font-size: 1.2rem;
+    color: #666;
+}
+
+/* コントロールのスタイル */
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.control-btn {
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 50px;
+    background-color: #eee;
+    color: #333;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.control-btn:hover {
+    background-color: #ddd;
+}
+
+.control-btn.primary {
+    background-color: #0066CC;
+    color: white;
+    font-weight: bold;
+}
+
+.control-btn.primary:hover {
+    background-color: #0055AA;
+}
+
+.control-btn.disabled {
+    background-color: #ccc;
+    color: #999;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.control-btn.primary.disabled {
+    background-color: #6693c0;
+}
+
+/* プログレスバーのスタイル */
+.progress-container {
+    margin-top: 1.5rem;
+}
+
+.progress-bar {
+    height: 6px;
+    background-color: #eee;
+    border-radius: 3px;
+    position: relative;
+    margin-bottom: 0.5rem;
+}
+
+.progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background-color: #0066CC;
+    border-radius: 3px;
+    width: 0%;
+    transition: width 0.3s linear;
+}
+
+.time-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+/* フッターのスタイル */
+footer {
+    text-align: center;
+    padding: 2rem 0;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 768px) {
+    .music-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .now-playing {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .album-cover-large {
+        margin-right: 0;
+        margin-bottom: 1.5rem;
+    }
+    
+    .track-info-large h2 {
+        font-size: 1.5rem;
+    }
+    
+    .controls {
+        flex-wrap: wrap;
+    }
+}

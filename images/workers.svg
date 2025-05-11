@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <rect width="300" height="300" fill="#E74C3C"/>
+  
+  <!-- グラデーション定義 -->
+  <linearGradient id="workersGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#E74C3C"/>
+    <stop offset="100%" stop-color="#F1C40F"/>
+  </linearGradient>
+  
+  <!-- 太陽（夕焼け）を表現 -->
+  <circle cx="150" cy="180" r="90" fill="url(#workersGrad)" opacity="0.8"/>
+  
+  <!-- ビル群のシルエット -->
+  <polygon points="30,200 30,150 50,150 50,180 70,180 70,130 90,130 90,170 110,170 110,190 130,190 130,140 150,140 150,160 170,160 170,120 190,120 190,170 210,170 210,150 230,150 230,180 250,180 250,140 270,140 270,200" 
+         fill="#333333"/>
+  
+  <!-- 忙しいサラリーマンのシルエット -->
+  <circle cx="100" cy="100" r="20" fill="#333333"/> <!-- 頭 -->
+  <rect x="90" y="120" width="20" height="40" fill="#333333"/> <!-- 体 -->
+  <line x1="90" y1="130" x2="70" y2="150" stroke="#333333" stroke-width="5"/> <!-- 左腕 -->
+  <line x1="110" y1="130" x2="130" y2="150" stroke="#333333" stroke-width="5"/> <!-- 右腕 -->
+  <line x1="100" y1="160" x2="90" y2="190" stroke="#333333" stroke-width="5"/> <!-- 左足 -->
+  <line x1="100" y1="160" x2="110" y2="190" stroke="#333333" stroke-width="5"/> <!-- 右足 -->
+  
+  <!-- ビジネスバッグ -->
+  <rect x="120" y="145" width="15" height="25" fill="#333333"/>
+  
+  <!-- 疲れた表情 -->
+  <line x1="90" y1="95" x2="95" y2="95" stroke="#F1C40F" stroke-width="2"/> <!-- 左目 -->
+  <line x1="105" y1="95" x2="110" y2="95" stroke="#F1C40F" stroke-width="2"/> <!-- 右目 -->
+  <path d="M95,105 Q100,110 105,105" stroke="#F1C40F" stroke-width="2" fill="none"/> <!-- 口 -->
+  
+  <!-- 応援メッセージの光線 -->
+  <path d="M150,50 L160,70 L170,60 L180,80 L190,70 L200,90 L210,80" 
+        stroke="#F1C40F" stroke-width="3" fill="none"/>
+  <path d="M150,30 L170,40 L180,30 L190,50 L200,40 L210,60 L220,50" 
+        stroke="#F1C40F" stroke-width="3" fill="none"/>
+  
+  <!-- 星（希望の光） -->
+  <polygon points="230,40 235,50 245,52 237,60 240,70 230,65 220,70 223,60 215,52 225,50" fill="#F1C40F"/>
+  <polygon points="250,80 253,87 260,88 255,93 257,100 250,97 243,100 245,93 240,88 247,87" fill="#F1C40F"/>
+  
+  <!-- テキスト -->
+  <text x="150" y="250" font-family="Arial" font-size="24" fill="#FFFFFF" text-anchor="middle" font-weight="bold">社畜ファイターズ</text>
+</svg>
